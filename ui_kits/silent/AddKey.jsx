@@ -90,18 +90,24 @@ function AddKeyModal({ network = 'Signet', existing = [], onClose, onAdd, initia
     );
   } else if (step === 'qr') {
     title = 'Add a Key · QR Code';
+    // The request code, on the step and again in QR Settings.
+    const requestCode = (
+      <QRCard size={360} bg={`hsl(220 14% ${40 + (qrContrast - 1) * 15}%)`}>
+        <div style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: qrSvg(`UR:CRYPTO-REQUEST/XPUBS/${network.toUpperCase()}/${accountRows.map(r => r.path.slice(2).replace(/'/g, 'H').replace(/\//g, '-')).join(',')}`) }} />
+      </QRCard>
+    );
     body = (
       <Stack gap="m" align="center">
-        <QRCard size={360} bg={`hsl(220 14% ${40 + (qrContrast - 1) * 15}%)`}>
-          <div style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: qrSvg(`UR:CRYPTO-REQUEST/XPUBS/${network.toUpperCase()}/${accountRows.map(r => r.path.slice(2).replace(/'/g, 'H').replace(/\//g, '-')).join(',')}`) }} />
-        </QRCard>
+        {requestCode}
         <ModalActions onBack={() => setStep('mode')}>
           <Btn id="qr_settings" onClick={() => setQrSettings(true)} />
           <Btn id="next_scan_the_answer" onClick={() => setStep('qr-scan')} />
         </ModalActions>
         {qrSettings ? (
           <QrSettingsModal contrast={qrContrast} density={qrDensity} speed={qrSpeed} onContrast={setQrContrast}
-            onDensity={setQrDensity} onSpeed={setQrSpeed} onClose={() => setQrSettings(false)} />
+            onDensity={setQrDensity} onSpeed={setQrSpeed} onClose={() => setQrSettings(false)}>
+            {requestCode}
+          </QrSettingsModal>
         ) : null}
       </Stack>
     );

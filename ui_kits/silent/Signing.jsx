@@ -148,9 +148,10 @@ function SdStep({ context = 'sign', fileBase = 'savings', phase: initialPhase = 
 
 const QR_PAYLOAD = 'cHNidP8BAHECAAAAAfwzq1kY2hVi9k3lQ8nT0pXrWb7mGv4Lh2Jd9sKfP1aoAAAAAAAD9____AoCWmAAAAAAAFgAUq3Zr8tN1dJ0hLmC4wVfYx2kPbT5AQg8AAAAAABYAFLuh7cP2mZ9oXkqR3sVbTtMu1nQwAAAAAAEBH0BCDwAAAAAAFgAU8aQxk2nF0pZ7Lm3vBtWcYxRd9KsiBgL0nT8qWvLh2Jd9sKfP1ao9k3lQ8nT0pXrWb7mGv4Lh0Yz1a8tVAAAA';
 
-/* QR Settings: contrast, density and speed of a QR code that keeps playing behind it.
-   Opened from the gear left of Next on every QR code step (signing, Add a Key). */
-function QrSettingsModal({ contrast, density, speed, onContrast, onDensity, onSpeed, onClose }) {
+/* QR Settings: contrast, density and speed of a QR code that keeps playing, shown
+   above the steppers (`children`, the code of the step it was opened from) so each
+   change shows here. Opened from the gear left of Next on every QR code step. */
+function QrSettingsModal({ contrast, density, speed, onContrast, onDensity, onSpeed, onClose, children }) {
   const tune = (label, hint, v, set) => (
     <Stack align="center" gap="xxs" style={{ width: 150 }}>
       <Stepper label={label} value={v} min={1} max={5} onChange={set} />
@@ -159,11 +160,14 @@ function QrSettingsModal({ contrast, density, speed, onContrast, onDensity, onSp
   );
   return (
     <Modal title="QR Settings" width={560} onClose={onClose}>
-      <Row gap="l" justify="center" align="flex-start">
-        {tune('Contrast', 'Background brightness. Raise it if the device misreads the code.', contrast, onContrast)}
-        {tune('Density', 'Data per frame. Lower it for older cameras; it adds parts.', density, onDensity)}
-        {tune('Speed', 'Frames per second. Lower it if the device misses parts.', speed, onSpeed)}
-      </Row>
+      <Stack align="center" gap="l">
+        {children}
+        <Row gap="l" justify="center" align="flex-start">
+          {tune('Contrast', 'Background brightness. Raise it if the device misreads the code.', contrast, onContrast)}
+          {tune('Density', 'Data per frame. Lower it for older cameras; it adds parts.', density, onDensity)}
+          {tune('Speed', 'Frames per second. Lower it if the device misses parts.', speed, onSpeed)}
+        </Row>
+      </Stack>
     </Modal>
   );
 }
@@ -190,12 +194,11 @@ function QrDisplayStep({ context = 'sign', address, onNext, onCancel, initialReb
   const changeDensity = (v) => { setDensity(v); setRebuilding(true); setTimeout(() => setRebuilding(false), 700); };
   const svg = React.useMemo(() => qrSvg(parts[frame] || '', { ecOrder: ['L', 'M'] }), [parts, frame]);
   const bg = `hsl(220 14% ${40 + (contrast - 1) * 15}%)`;
-  return (
+  // The playing code with its part counter: on the step, and again in QR Settings.
+  const code = (size) => (
     <Stack align="center" gap="m">
-      <Text variant="body" color="secondary" align="center">{c.qrHint}</Text>
-      {context === 'verify' && address ? <Card tone="inset" pad="m" style={{ width: '100%' }}><ChunkedAddress text={address} wrap /></Card> : null}
       <div style={{ position: 'relative' }}>
-        <QRCard size={400} pad={16} radius={12} bg={bg} dim={rebuilding}>
+        <QRCard size={size} pad={16} radius={12} bg={bg} dim={rebuilding}>
           <div style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: svg }} />
         </QRCard>
         {rebuilding ? (
@@ -205,13 +208,22 @@ function QrDisplayStep({ context = 'sign', address, onNext, onCancel, initialReb
         ) : null}
       </div>
       <Text variant="mono" color="secondary" weight="demibold">{rebuilding ? 'Part – / –' : `Part ${frame + 1} / ${parts.length}`}</Text>
+    </Stack>
+  );
+  return (
+    <Stack align="center" gap="m">
+      <Text variant="body" color="secondary" align="center">{c.qrHint}</Text>
+      {context === 'verify' && address ? <Card tone="inset" pad="m" style={{ width: '100%' }}><ChunkedAddress text={address} wrap /></Card> : null}
+      {code(400)}
       <ModalActions style={{ width: '100%' }} reason={rebuilding ? 'Wait for the code to rebuild.' : null}>
         <Btn id="qr_settings" onClick={() => setShowSettings(true)} />
         <Btn id="next_scan_the_answer" disabled={rebuilding} onClick={onNext} />
       </ModalActions>
       {showSettings ? (
         <QrSettingsModal contrast={contrast} density={density} speed={speed} onContrast={setContrast}
-          onDensity={changeDensity} onSpeed={setSpeed} onClose={() => setShowSettings(false)} />
+          onDensity={changeDensity} onSpeed={setSpeed} onClose={() => setShowSettings(false)}>
+          {code(360)}
+        </QrSettingsModal>
       ) : null}
     </Stack>
   );

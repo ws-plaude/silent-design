@@ -20,18 +20,18 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=46"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Modal.jsx?v=8"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Address.jsx?v=9"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Data.jsx?v=19"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Data.jsx?v=20"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Sidebar.jsx?v=8"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Keys.jsx?v=49"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Signing.jsx?v=25"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/AddKey.jsx?v=28"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/TxFlow.jsx?v=6"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=51"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=66"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=63"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/GlobalSettings.jsx?v=29"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/GlobalSettings.jsx?v=30"></script>
 
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
     const noop = () => {};
@@ -87,7 +87,7 @@
       </FeeFeedProvider>;
     }
     const Fees = props => ({ tag: 'FeeSettingsSection / SendScreen', span: 'full', ...F(<FeeSettingsDemo {...props} />, 2100) });
-    const feePreference = mode => ({ ...FEE_PREFERENCES, mode, default_source: FEE_FEED_SOURCES[0].id, smart_source: FEE_FEED_SOURCES[1].id });
+    const feePreference = (mode, source = FEE_FEED_SOURCES[mode === 'Default' ? 0 : 1].id) => ({ mode, source });
 
     Gallery.render({
       kicker: 'Settings · components',
@@ -117,13 +117,16 @@
           { title: 'No price providers: section hidden even with a retained selection', ...Prices({ initialSources: [], initialSelection: { source: PRICE_FEED_SOURCES[0].id, currency: 'EUR' } }) },
           { title: 'Saved PSBT: price changes refresh fiat, never its locked BTC payments, inputs, fee or spend path', ...Prices({ locked: true, initialSelection: { source: PRICE_FEED_SOURCES[0].id, currency: 'EUR' } }) },
         ]},
-        { name: 'Transaction fees (issue #53)', items: [
+        { name: 'Transaction fees (issues #53, #75)', items: [
           { title: 'Fee settings: providers available, None selected; Manual remains 1 sat/vB until explicitly configured', ...Fees({}) },
           { title: 'Default fees: selected source, fractional pushed recommendations and manual override', ...Fees({ initialPreferences: feePreference('Default') }) },
           { title: 'Smart fees: initial Medium, per-send Low/Medium/Fast, sticky Manual fallback after withdrawal', ...Fees({ initialPreferences: feePreference('Smart') }) },
-          { title: 'Default-only provider: no Smart source or initial tier controls', ...Fees({ initialSources: [FEE_FEED_SOURCES[0]], initialPreferences: feePreference('Default') }) },
-          { title: 'Smart-only provider: no Default source control', ...Fees({ initialSources: [FEE_FEED_SOURCES[1]], initialPreferences: feePreference('Smart') }) },
-          { title: 'Combined provider: one source may supply both capabilities, still selected independently', ...Fees({ initialSources: [FEE_FEED_SOURCES[2]], initialPreferences: { ...FEE_PREFERENCES, mode: 'Default', default_source: FEE_FEED_SOURCES[2].id, smart_source: FEE_FEED_SOURCES[2].id } }) },
+          { title: 'Default-only provider: one Provider selector; global modes Manual/Default, Send still offers Smart', ...Fees({ initialSources: [FEE_FEED_SOURCES[0]], initialPreferences: feePreference('Default') }) },
+          { title: 'Smart-only provider: one Provider selector; global modes Manual/Smart, Send still offers Default', ...Fees({ initialSources: [FEE_FEED_SOURCES[1]], initialPreferences: feePreference('Smart') }) },
+          { title: 'Combined provider: shared source, Default 3 differs from Smart Medium 2; change Send mode locally', ...Fees({ initialSources: [FEE_FEED_SOURCES[2]], initialPreferences: feePreference('Default', FEE_FEED_SOURCES[2].id) }) },
+          { title: 'Default-only selection with Smart available elsewhere: global Smart remains selectable; no substitute quote', ...Fees({ initialPreferences: feePreference('Smart', FEE_FEED_SOURCES[0].id) }) },
+          { title: 'Unavailable provider: retain its id and global Default mode, no automatic selection', ...Fees({ initialSources: [FEE_FEED_SOURCES[1]], initialPreferences: feePreference('Default') }) },
+          { title: 'Missing Smart Medium: Manual at 1 sat/vB despite Low/Fast quotes; push recovery, then explicitly select Smart', ...Fees({ initialSources: [{ ...FEE_FEED_SOURCES[1], smartRates: { Low: 0.25, Fast: 2 } }], initialPreferences: feePreference('Smart') }) },
           { title: 'No fee providers: global Smart preference retained, Send falls back to Manual; recovery waits for a new transaction', ...Fees({ initialSources: [], initialPreferences: feePreference('Smart') }) },
           { title: 'Restored PSBT: actual fee stays 280 sats, no editable fee controls or recommendation changes', ...Fees({ locked: true, initialPreferences: feePreference('Smart') }) },
           { title: 'Prepared Multikey: Sign locks the fee; pushed recommendations cannot alter it while signing', ...Fees({ wallet: WALLETS.multikey, initialPreferences: feePreference('Smart') }) },

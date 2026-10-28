@@ -86,7 +86,7 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
   const [feeRate, setFeeRate] = React.useState(!initial.inputs);
   const [fee, setFee] = React.useState(initial.fee || '1');
   const [feeMode, setFeeMode] = React.useState(initial.inputs ? 'Manual' : preferences.mode);
-  const [feeTier, setFeeTier] = React.useState(preferences.tier);
+  const [feeTier, setFeeTier] = React.useState('Medium');
   const [auto, setAuto] = React.useState(!initial.inputs);
   const [selected, setSelected] = React.useState(initial.inputs ? Object.fromEntries(initial.inputs.map((_, i) => [i, true])) : {});
   const [modal, setModal] = React.useState(null); // null | 'confirm' | 'sending' | 'sent'
@@ -118,9 +118,9 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
   }, [held, restored, feeMode, recommendation]);
 
   const initializeFees = () => {
-    const value = rate(preferences.mode, preferences.tier);
+    const value = rate(preferences.mode, 'Medium');
     setFeeMode(value === null ? 'Manual' : preferences.mode);
-    setFeeTier(preferences.tier); setFeeRate(true); setFee(String(value === null ? 1 : value));
+    setFeeTier('Medium'); setFeeRate(true); setFee(String(value === null ? 1 : value));
   };
   const pickFeeMode = mode => { setFeeMode(mode); if (mode !== 'Manual') setFeeRate(true); };
   const editFee = e => {

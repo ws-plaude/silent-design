@@ -75,7 +75,6 @@ function PriceFeedSection({ open = true, onFold }) {
 }
 
 function FeeSourceField({ label, sources, value, onChange }) {
-  if (!sources.length) return null;
   const source = sources.find(s => s.id === value);
   const selected = source ? source.name : value ? `${value} (unavailable)` : 'None';
   const options = ['None', ...sources.map(s => s.name), ...(!source && value ? [selected] : [])];
@@ -94,9 +93,7 @@ function FeeSettingsSection({ open = true, onFold }) {
     <SectionHeader label="Transaction fees" open={open} onToggle={onFold} />
     {open ? <Stack gap="s">
       <FieldGroup><Field label="Fee mode:"><ComboBox value={preferences.mode} options={modes} onChange={mode => set({ mode })} /></Field></FieldGroup>
-      <FeeSourceField label="Default source:" sources={defaults} value={preferences.default_source} onChange={default_source => set({ default_source })} />
-      <FeeSourceField label="Smart source:" sources={smart} value={preferences.smart_source} onChange={smart_source => set({ smart_source })} />
-      {smart.length ? <FieldGroup><Field label="Initial smart tier:"><ComboBox value={preferences.tier} options={['Low', 'Medium', 'Fast']} onChange={tier => set({ tier })} /></Field></FieldGroup> : null}
+      <FeeSourceField label="Provider:" sources={sources.filter(s => s.has_default || s.has_smart)} value={preferences.source} onChange={source => set({ source })} />
     </Stack> : null}
   </Stack>;
 }

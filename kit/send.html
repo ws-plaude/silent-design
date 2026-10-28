@@ -20,14 +20,14 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=46"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Modal.jsx?v=8"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Address.jsx?v=9"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Data.jsx?v=19"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Data.jsx?v=20"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Sidebar.jsx?v=8"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Keys.jsx?v=49"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Signing.jsx?v=25"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/AddKey.jsx?v=28"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/TxFlow.jsx?v=6"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=51"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=66"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=63"></script>
@@ -82,8 +82,8 @@
           { title: 'Send — full screen', tag: 'SendScreen', span: 'full', frame: true, height: 660, el: <SendScreen wallet={W} /> },
           { title: 'Send: EUR available from the explicitly selected feed, including fee, change, total and hover cards', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <PriceFeedProvider sources={PRICE_FEED_SOURCES} initialSelection={{ source: PRICE_FEED_SOURCES[0].id, currency: 'EUR' }}><SendScreen wallet={W} initial={{ payments: [{ address: MUSIG_ADDRESS, amount: '0.005', label: 'Invoice', max: false }] }} /></PriceFeedProvider> },
           { title: 'Send: selected quote unavailable, no fiat entry or equivalents', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <PriceFeedProvider sources={[{ ...PRICE_FEED_SOURCES[0], rates: {} }]} initialSelection={{ source: PRICE_FEED_SOURCES[0].id, currency: 'EUR' }}><SendScreen wallet={W} initial={{ payments: [{ address: MUSIG_ADDRESS, amount: '0.005', label: 'Invoice', max: false }] }} /></PriceFeedProvider> },
-          { title: 'Send: Default recommendation at 0.5 sat/vB; typing a rate or toggling absolute fee switches to Manual', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <FeeFeedProvider sources={FEE_FEED_SOURCES} initialPreferences={{ ...FEE_PREFERENCES, mode: 'Default', default_source: FEE_FEED_SOURCES[0].id }}><SendScreen wallet={W} initial={{ payments: [{ address: MUSIG_ADDRESS, amount: '0.005', label: 'Invoice', max: false }] }} /></FeeFeedProvider> },
-          ...['Low', 'Medium', 'Fast'].map(tier => ({ title: `Send: Smart ${tier}, initialized from global preferences`, tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <FeeFeedProvider sources={FEE_FEED_SOURCES} initialPreferences={{ ...FEE_PREFERENCES, mode: 'Smart', smart_source: FEE_FEED_SOURCES[1].id, tier }}><SendScreen wallet={W} initial={{ payments: [{ address: MUSIG_ADDRESS, amount: '0.005', label: 'Invoice', max: false }] }} /></FeeFeedProvider> })),
+          { title: 'Send: Default recommendation at 0.5 sat/vB; typing a rate or toggling absolute fee switches to Manual', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <FeeFeedProvider sources={FEE_FEED_SOURCES} initialPreferences={{ mode: 'Default', source: FEE_FEED_SOURCES[0].id }}><SendScreen wallet={W} initial={{ payments: [{ address: MUSIG_ADDRESS, amount: '0.005', label: 'Invoice', max: false }] }} /></FeeFeedProvider> },
+          { title: 'Send: Smart starts at Medium (0.75 sat/vB); select Low (0.25) or Fast (2) locally in Send, never in global preferences', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <FeeFeedProvider sources={FEE_FEED_SOURCES} initialPreferences={{ mode: 'Smart', source: FEE_FEED_SOURCES[1].id }}><SendScreen wallet={W} initial={{ payments: [{ address: MUSIG_ADDRESS, amount: '0.005', label: 'Invoice', max: false }] }} /></FeeFeedProvider> },
         ]},
         { name: 'Transaction shape', items: [
           { title: 'Populated (2 in → recipient · change · fee)', tag: 'TxFlow', span: 'span2', el: <Card tone="inset" style={{ padding: '12px 10px 8px' }}><TxFlow inputs={inItems} outputs={outItems} /></Card> },

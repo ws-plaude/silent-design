@@ -201,12 +201,13 @@ const PRICE_FEED_SOURCES = [
 ];
 Object.assign(window, { PriceFeedContext, PriceFeedProvider, PRICE_FEED_SOURCES });
 
-const FEE_PREFERENCES = { mode: 'Manual', default_source: '', smart_source: '', tier: 'Medium' };
+const FEE_PREFERENCES = { mode: 'Manual', source: '' };
 const FeeFeedContext = React.createContext({ sources: [], preferences: FEE_PREFERENCES, selectFees: () => {}, rate: () => null });
 function FeeFeedProvider({ sources = [], initialPreferences = FEE_PREFERENCES, children }) {
-  const [preferences, selectFees] = React.useState(initialPreferences);
+  const [preferences, setPreferences] = React.useState(() => ({ mode: initialPreferences.mode, source: initialPreferences.source || '' }));
+  const selectFees = ({ mode, source }) => setPreferences({ mode, source });
   const rate = (mode, tier) => {
-    const source = sources.find(s => s.id === (mode === 'Default' ? preferences.default_source : preferences.smart_source));
+    const source = sources.find(s => s.id === preferences.source);
     const value = mode === 'Default' && source && source.has_default ? source.defaultRate
       : mode === 'Smart' && source && source.has_smart ? (source.smartRates || {})[tier] : null;
     return Number.isFinite(value) && value > 0 ? value : null;

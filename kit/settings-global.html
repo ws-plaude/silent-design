@@ -31,7 +31,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=66"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=63"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/GlobalSettings.jsx?v=30"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/GlobalSettings.jsx?v=31"></script>
 
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
     const noop = () => {};
@@ -69,12 +69,15 @@
         defaultRate: s.id === FEE_FEED_SOURCES[0].id ? 0.625 : 4,
         smartRates: { Low: 0.125, Medium: 0.5, Fast: 1.5 } })));
       const withdraw = () => setSources(rows => rows.map(s => ({ ...s, defaultRate: null, smartRates: {} })));
+      const invalidatePartial = () => setSources(rows => rows.map(s => ({ ...s,
+        defaultRate: 0, smartRates: { ...s.smartRates, Medium: -1 } })));
       return <FeeFeedProvider sources={sources} initialPreferences={initialPreferences}>
         <Stack gap="s" style={{ height: '100%' }}>
           <Row gap="s" wrap>
             <Text variant="caption">Kit controls, not app UI:</Text>
             <Button onClick={push}>Push recommendations</Button>
             <Button onClick={withdraw}>Withdraw recommendations</Button>
+            <Button onClick={invalidatePartial}>Invalidate Default and Medium</Button>
             <Button onClick={() => setSources([])}>Unload fee feeds</Button>
             <Button onClick={() => setSources(initialSources.length ? initialSources : FEE_FEED_SOURCES)}>Reload fee feeds</Button>
             <Button onClick={() => setVersion(n => n + 1)}>New transaction</Button>
@@ -117,8 +120,11 @@
           { title: 'No price providers: section hidden even with a retained selection', ...Prices({ initialSources: [], initialSelection: { source: PRICE_FEED_SOURCES[0].id, currency: 'EUR' } }) },
           { title: 'Saved PSBT: price changes refresh fiat, never its locked BTC payments, inputs, fee or spend path', ...Prices({ locked: true, initialSelection: { source: PRICE_FEED_SOURCES[0].id, currency: 'EUR' } }) },
         ]},
-        { name: 'Transaction fees (issues #53, #75)', items: [
-          { title: 'Fee settings: providers available, None selected; Manual remains 1 sat/vB until explicitly configured', ...Fees({}) },
+        { name: 'Transaction fees (issues #53, #74, #75)', items: [
+          { title: 'Fee settings: providers available, None selected; all four readouts are literal hyphens, Manual remains 1 sat/vB until explicitly configured', ...Fees({}) },
+          { title: 'Manual with Combined Feed selected: cached Default 3, Low 1, Medium 2, Fast 4 sat/vB remain visible', ...Fees({ initialPreferences: feePreference('Manual', FEE_FEED_SOURCES[2].id) }) },
+          { title: 'Manual with Combined Feed selected, all cached values missing: four hyphens; Push recommendations recovers without changing preferences', ...Fees({ initialSources: [{ ...FEE_FEED_SOURCES[2], defaultRate: null, smartRates: {} }], initialPreferences: feePreference('Manual', FEE_FEED_SOURCES[2].id) }) },
+          { title: 'Manual with partial Combined Feed cache: Default 0 and Medium -1 show hyphens, Low 1 and Fast 4 remain; Push recommendations recovers', ...Fees({ initialSources: [{ ...FEE_FEED_SOURCES[2], defaultRate: 0, smartRates: { Low: 1, Medium: -1, Fast: 4 } }], initialPreferences: feePreference('Manual', FEE_FEED_SOURCES[2].id) }) },
           { title: 'Default fees: selected source, fractional pushed recommendations and manual override', ...Fees({ initialPreferences: feePreference('Default') }) },
           { title: 'Smart fees: initial Medium, per-send Low/Medium/Fast, sticky Manual fallback after withdrawal', ...Fees({ initialPreferences: feePreference('Smart') }) },
           { title: 'Default-only provider: one Provider selector; global modes Manual/Default, Send still offers Smart', ...Fees({ initialSources: [FEE_FEED_SOURCES[0]], initialPreferences: feePreference('Default') }) },

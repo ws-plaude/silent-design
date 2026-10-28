@@ -85,7 +85,7 @@ function FeeSourceField({ label, sources, value, onChange }) {
 }
 
 function FeeSettingsSection({ open = true, onFold }) {
-  const { sources, preferences, selectFees } = React.useContext(FeeFeedContext);
+  const { sources, preferences, selectFees, rate } = React.useContext(FeeFeedContext);
   const defaults = sources.filter(s => s.has_default), smart = sources.filter(s => s.has_smart);
   const modes = ['Manual', ...(defaults.length || preferences.mode === 'Default' ? ['Default'] : []), ...(smart.length || preferences.mode === 'Smart' ? ['Smart'] : [])];
   const set = patch => selectFees({ ...preferences, ...patch });
@@ -94,6 +94,12 @@ function FeeSettingsSection({ open = true, onFold }) {
     {open ? <Stack gap="s">
       <FieldGroup><Field label="Fee mode:"><ComboBox value={preferences.mode} options={modes} onChange={mode => set({ mode })} /></Field></FieldGroup>
       <FeeSourceField label="Provider:" sources={sources.filter(s => s.has_default || s.has_smart)} value={preferences.source} onChange={source => set({ source })} />
+      <FieldGroup>
+        {['Default', 'Low', 'Medium', 'Fast'].map(tier => {
+          const value = rate(tier === 'Default' ? 'Default' : 'Smart', tier);
+          return <Field key={tier} label={tier}><Text variant="body">{value === null ? '-' : `${value} sat/vB`}</Text></Field>;
+        })}
+      </FieldGroup>
     </Stack> : null}
   </Stack>;
 }

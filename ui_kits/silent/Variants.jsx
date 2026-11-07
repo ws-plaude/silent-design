@@ -87,6 +87,13 @@ export const BUTTONS = {
   add_spend_path: { role: 'default', label: '+ Add a Spend Path', w: 'L' },
   backup_descriptor: { role: 'default', label: 'Backup Descriptor', icon: 'download', iconSize: 16, w: 'XL' },
   register_descriptor: { role: 'default', label: 'Register Descriptor', icon: 'usb', iconSize: 16, w: 'XL' },
+  /* account backup and restore: Settings' Backup Account, the backup's Save Backup, the restore's
+     Choose File, Read Backup and Restore Account */
+  backup_account: { role: 'default', label: 'Backup Account', icon: 'download', iconSize: 16, w: 'XL' },
+  save_backup: { role: 'primary', label: 'Save Backup', icon: 'download', iconSize: 16, w: 'L' },
+  choose_file: { role: 'default', label: 'Choose File…', icon: 'folder', iconSize: 16, w: 'L' },
+  read_backup: { role: 'primary', label: 'Read Backup', w: 'L' },
+  restore_account: { role: 'primary', label: 'Restore Account', w: 'L' },
   clear: { role: 'default', label: 'Clear', w: 'M' },
   cancel_signed: { role: 'destructive', label: 'Cancel', w: 'M' },
   connect_blindbit: { role: 'default', label: 'Connect Blindbit', w: 'L' },

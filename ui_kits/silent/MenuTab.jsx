@@ -1,11 +1,14 @@
 /* Silent UI Kit: Menu tab (MenuTab.cpp) + AccountType / CreateAccount / ConfirmDelete
    modals. One create button opens AccountType (AccountType.cpp), which lists the
-   creators: the silent payment wallet (CreateAccount), the shared MuSig2 wallet
-   (CreateSharedAccount, Musig.jsx), then those of the enabled plugins. */
+   creators: the silent payment wallet (CreateAccount) and its restore from a backup
+   (RestoreAccountModal, Settings.jsx), the shared MuSig2 wallet (CreateSharedAccount,
+   Musig.jsx) and its restore, then those of the enabled plugins. */
 
 const ACCOUNT_TYPES = [
   { id: 'sp', title: 'Silent Payment Wallet', icon: 'silent' },
+  { id: 'sp_restore', title: 'Restore Silent Payment Wallet', icon: 'silent' },
   { id: 'shared', title: 'Multikey Wallet', icon: 'users' },
+  { id: 'shared_restore', title: 'Restore Multikey Wallet', icon: 'users' },
 ];
 
 /* musigSim / musigSimKey: the kit simulator's keys + cached xpubs for the wizard (dev only). */
@@ -13,6 +16,7 @@ function MenuTab({ wallets, openWallets, onOpen, onCreate, onDelete, onOpenKeys,
   const [picking, setPicking] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
   const [sharing, setSharing] = React.useState(false);
+  const [restoring, setRestoring] = React.useState(null);   // null | 'sp' | 'musig'
   const [deleting, setDeleting] = React.useState(null);
   return (
     <Stack align="center" justify="center" style={{ flex: 1, overflow: 'auto',
@@ -36,12 +40,18 @@ function MenuTab({ wallets, openWallets, onOpen, onCreate, onDelete, onOpenKeys,
 
       {/* The picker closes before the creator opens: modals never stack. */}
       {picking ? <AccountType types={ACCOUNT_TYPES} onCancel={() => setPicking(false)}
-        onPick={(id) => { setPicking(false); (id === 'sp' ? setCreating : setSharing)(true); }} /> : null}
+        onPick={(id) => {
+          setPicking(false);
+          if (id === 'sp') setCreating(true);
+          else if (id === 'shared') setSharing(true);
+          else setRestoring(id === 'sp_restore' ? 'sp' : 'musig');
+        }} /> : null}
 
       {creating ? <CreateAccount existing={wallets} onOpenKeys={onOpenKeys ? () => { setCreating(false); onOpenKeys(); } : null} onCancel={() => setCreating(false)}
         onCreate={(name) => { onCreate(name); setCreating(false); }} /> : null}
       {sharing ? <CreateSharedAccount key={musigSimKey} {...(musigSim || {})} existing={wallets} onCancel={() => setSharing(false)}
         onCreate={(name) => { onCreate(name); setSharing(false); }} /> : null}
+      {restoring && window.RestoreAccountModal ? <RestoreAccountModal kind={restoring} onClose={() => setRestoring(null)} /> : null}
       {deleting ? <ConfirmDelete name={deleting} onCancel={() => setDeleting(null)}
         onConfirm={() => { onDelete(deleting); setDeleting(null); }} /> : null}
     </Stack>
@@ -197,4 +207,4 @@ function ConfirmDelete({ name, onCancel, onConfirm }) {
   );
 }
 
-Object.assign(window, { MenuTab, AccountType, CreateAccount, ConfirmDelete, ENDPOINT_DEFAULTS, REGTEST_ELECTRUM_URL });
+Object.assign(window, { MenuTab, AccountType, ACCOUNT_TYPES, CreateAccount, ConfirmDelete, ENDPOINT_DEFAULTS, REGTEST_ELECTRUM_URL });

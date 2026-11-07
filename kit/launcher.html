@@ -17,7 +17,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Primitives.jsx?v=36"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Layout.jsx?v=3"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Widgets.jsx?v=67"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=47"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=48"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Modal.jsx?v=8"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Data.jsx?v=20"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Address.jsx?v=9"></script>
@@ -25,7 +25,8 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Signing.jsx?v=25"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/AddKey.jsx?v=28"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=66"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=68"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=64"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
     function MenuDemo() {
@@ -37,12 +38,29 @@
           onDelete={(n) => setWallets(w => w.filter(x => x !== n))} />
       );
     }
+    const noop = () => {};
+    const F = (el, h = 480) => ({ frame: true, height: h, el: <div style={{ position: 'relative', height: '100%' }}>{el}</div> });
+    const RA = (title, kind, initial, h = 440) => ({ title, tag: 'RestoreAccountModal', span: 'span2', ...F(<RestoreAccountModal kind={kind} initial={initial} onClose={noop} />, h) });
+    const FILE = (n) => `${n}-20261107.silent-backup`;
     Gallery.render({
       kicker: 'Launcher · components', title: 'Launcher (Menu tab)',
       lede: 'The wallet launcher: wordmark, a prominent “+ Create Account” action opening the Account Type picker, and the list of existing wallets (open / delete). Create and Delete open their modals — try them in the frame.',
       groups: [
         { name: 'Screen', items: [
           { title: 'Launcher — full screen (Create / Delete modals live)', tag: 'MenuTab', span: 'full', frame: true, height: 560, el: <MenuDemo /> },
+          { title: 'Account Type: each creator, then its restore from a backup', tag: 'AccountType', span: 'span2', ...F(<AccountType types={ACCOUNT_TYPES} onCancel={noop} onPick={noop} />, 400) },
+        ]},
+        { name: 'Restore Account (from the Account Type picker)', items: [
+          RA('Password: no file chosen', 'sp', {}),
+          RA('Password: file chosen, no password', 'sp', { file: FILE('savings') }),
+          RA('Password: ready to read', 'sp', { file: FILE('savings'), pw: 'correct horse' }),
+          RA('Password: wrong password', 'sp', { file: FILE('savings'), error: 'Wrong password, or a damaged backup.' }, 480),
+          RA('Busy: reading the backup', 'sp', { busy: 'reading' }, 380),
+          RA('Review: a silent payment backup', 'sp', { view: 'review' }, 640),
+          RA('Review: a Multikey backup, with its warning', 'musig', { view: 'review' }, 640),
+          RA('Review: the restore failed', 'musig', { view: 'review', restoreError: "An account named 'multikey' exists: delete it first" }, 700),
+          RA('Busy: restoring the account', 'musig', { busy: 'restoring' }, 380),
+          RA('Restored', 'sp', { view: 'restored' }, 300),
         ]},
       ],
     });

@@ -17,6 +17,8 @@ const GS_REMOVE_WIDTH = 760; /* Qt: ModalWidth::Wizard. */
    reason, and has no toggle (there is nothing to switch). The toggle slot keeps its
    width when empty, so id/version lines up on every row. Once the plugin has asked
    for the accounts or the keys (an answer is kept), Access opens what it may use.
+   Remove stays disabled while the plugin is enabled: it is disabled first. A plugin
+   that failed to load has no toggle, so its Remove stays available.
    Qt: QFrame row with HBox(Label stack, Label, Pill or Access, Toggle). */
 function PluginRow({ plugin, busy, unavailable, onToggle, onAccess, onRemove, onRetryDisable }) {
   const failed = !!plugin.error;
@@ -28,7 +30,7 @@ function PluginRow({ plugin, busy, unavailable, onToggle, onAccess, onRemove, on
       status={<Row gap="s">
         {plugin.disableFailed && !busy ? <Btn id="retry_disable_plugin" disabled={unavailable} onClick={() => onRetryDisable && onRetryDisable(plugin)} /> : null}
         {!busy && !plugin.removing && hasAccess ? <Btn id="plugin_access" disabled={unavailable} onClick={() => onAccess && onAccess(plugin)} /> : null}
-        <Btn id="remove_plugin" disabled={busy || unavailable} onClick={() => onRemove && onRemove(plugin)} />
+        <Btn id="remove_plugin" disabled={busy || unavailable || (plugin.enabled && !failed)} onClick={() => onRemove && onRemove(plugin)} />
       </Row>}
       trailingWidth="var(--toggle-w)" chevron={false}
       trailing={failed ? null : <Toggle on={plugin.enabled} disabled={busy || plugin.removing || unavailable} onClick={() => onToggle(plugin)} />} />

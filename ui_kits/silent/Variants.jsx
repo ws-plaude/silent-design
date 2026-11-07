@@ -64,6 +64,12 @@ export const BUTTONS = {
   backup_descriptor_primary: { role: 'primary', label: 'Backup Descriptor', icon: 'download', iconSize: 16, w: 'XL' },
   save_spend_path: { role: 'primary', label: 'Save Path', w: 'M' },
   save_unsigned_psbt: { role: 'primary', label: 'Save Unsigned PSBT…', icon: 'download', iconSize: 16, w: 'XL' },
+  /* PSBT export / import (issue #83): Export opens the choice, Import the file or clipboard entry */
+  export_psbt: { role: 'default', label: 'Export PSBT…', icon: 'upload', iconSize: 16, w: 'L' },
+  import_psbt: { role: 'default', label: 'Import PSBT…', icon: 'download', iconSize: 16, w: 'L' },
+  save_to_file: { role: 'default', label: 'Save to File…', icon: 'download', iconSize: 16, w: 'L' },
+  copy_to_clipboard: { role: 'primary', label: 'Copy to Clipboard', icon: 'copy', iconSize: 16, w: 'XL' },
+  paste_from_clipboard: { role: 'default', label: 'Paste from Clipboard', icon: 'copy', iconSize: 16, w: 'XL' },
   seal_key: { role: 'primary', label: 'Seal Key', w: 'M' },
   show_mnemonic: { role: 'primary', label: 'Show Mnemonic', w: 'L' },
   sign: { role: 'primary', label: 'Sign', w: 'M' },
@@ -118,6 +124,8 @@ export const BUTTONS = {
   edit_label: { role: 'inline-icon', icon: 'pencil', iconSize: 14, title: 'Edit label', w: 'Icon' },
   /* a saved PSBT list row's delete (Multikey PSBT tab) */
   delete_row: { role: 'inline-icon', icon: 'trash', iconSize: 15, title: 'Delete', w: 'Icon' },
+  /* a saved PSBT list row's Export (its PSBT as base64) */
+  export_row: { role: 'inline-icon', icon: 'upload', iconSize: 15, title: 'Export PSBT…', w: 'Icon' },
   edit_label_row: { role: 'inline-icon', icon: 'pencil', iconSize: 15, w: 'Icon' },
   move_down: { role: 'inline-icon', icon: 'arrow_down', iconSize: 14, title: 'Move Down', w: 'Icon' },
   move_up: { role: 'inline-icon', icon: 'arrow_up', iconSize: 14, title: 'Move Up', w: 'Icon' },

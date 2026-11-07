@@ -790,10 +790,24 @@ const SAVED_PSBTS = [
   { id: 'confirmed', txid: '904895f3cc36d5e35514b5ff7af55c9b0822e114560ebe6fdab238067db076e5', label: 'Paid', ...SAVED_PSBT_TEMPLATE, round: 'ready', finalized: true, broadcast: true, height: 1219, edited: '2026-10-12 11:03' },
 ];
 
-/* compact: the window is under 1040px wide, Last Edited shows the date only */
-function SavedPsbts({ records = SAVED_PSBTS, compact = false, tip = 0, onOpen, onChange, saveWarning = '', onRetry, error = '' }) {
+/* A cosigner's PSBT, as Import PSBT… reads it in the kit. */
+const IMPORTED_PSBT = { id: 'imported', txid: 'b26a95f3cc36d5e35514b5ff7af55c9b0822e114560ebe6fdab238067db076e7', label: '', ...SAVED_PSBT_TEMPLATE, round: 1, done: { 1: ['b8688df1'] }, edited: '2026-11-07 10:04' };
+
+/* compact: the window is under 1040px wide, Last Edited shows the date only.
+   Import PSBT… (title right) saves a cosigner's PSBT as one more row, or merges it into
+   the row of the same transaction; each row's Export (download icon) hands its PSBT out
+   as base64, named after its label, else its txid. `modal`: { type: 'export', record } |
+   { type: 'import', result } shown on open. */
+function SavedPsbts({ records = SAVED_PSBTS, compact = false, tip = 0, onOpen, onChange, saveWarning = '', onRetry, error = '', modal: initialModal = null }) {
   const [confirmed, setConfirmed] = React.useState(false);
   const [deleting, setDeleting] = React.useState(null);
+  const [transfer, setTransfer] = React.useState(initialModal);
+  /* the kit's account takes the cosigner's PSBT: saved once, merged after */
+  const importPsbt = () => {
+    const merged = records.some(r => r.id === IMPORTED_PSBT.id);
+    if (!merged) onChange && onChange([IMPORTED_PSBT, ...records]);
+    setTransfer({ type: 'import', result: merged ? 'merged' : 'saved' });
+  };
   /* a broadcast (or confirmed) one is never resumed in Send: it opens in the transaction
      modal, with its warnings / conflicts there too */
   const [viewing, setViewing] = React.useState(null);
@@ -832,10 +846,11 @@ function SavedPsbts({ records = SAVED_PSBTS, compact = false, tip = 0, onOpen, o
       return <Row gap="xs"><Pill id={r.height ? 'psbt_confirmed' : (r.conflicts || []).length ? 'psbt_deprecated' : r.broadcast ? 'psbt_unconfirmed' : r.finalized ? 'psbt_ready' : 'psbt_signing'} />{notes.length ? <span onClick={e => { if ((r.conflicts || []).length) { e.stopPropagation(); showReplacing(r); } }} style={{ cursor: (r.conflicts || []).length ? 'pointer' : undefined, display: 'inline-flex' }}><InfoTip label={notes.join('\n')} /></span> : null}</Row>;
     } },
     { header: 'Value', width: 130, align: 'right', render: r => <BtcText btc={amount(r)} /> },
+    { header: '', width: 34, icon: true, render: r => <span onClick={e => e.stopPropagation()}><Btn id="export_row" onClick={() => setTransfer({ type: 'export', record: r })} /></span> },
     { header: '', width: 34, icon: true, render: r => <span onClick={e => e.stopPropagation()}><Btn id="delete_row" onClick={() => r.height ? remove(r) : setDeleting(r)} /></span> },
   ];
   return <React.Fragment>
-    <ScreenWrap title="PSBT" titleRight={<Checkbox checked={confirmed} onChange={setConfirmed} label="Show confirmed transactions" />}><Stack gap="s">
+    <ScreenWrap title="PSBT" titleRight={<Row gap="m"><Checkbox checked={confirmed} onChange={setConfirmed} label="Show confirmed transactions" /><Btn id="import_psbt" onClick={() => setTransfer({ type: 'import' })} /></Row>}><Stack gap="s">
       {error ? <Text variant="body">{error}</Text> : null}
       {saveWarning ? <React.Fragment>
         <Text variant="body">{psbtSaveWarning(saveWarning)}</Text>
@@ -847,6 +862,8 @@ function SavedPsbts({ records = SAVED_PSBTS, compact = false, tip = 0, onOpen, o
         : !error ? <Text variant="body">No saved PSBTs. Transactions are saved when prepared for signing.</Text> : null}
     </Stack></ScreenWrap>
     {viewing ? <TransactionModal tx={asTx(viewing)} tip={tip} compact={compact} onClose={() => setViewing(null)} /> : null}
+    {transfer && transfer.type === 'export' ? <ExportPsbtModal name={transfer.record.label || transfer.record.txid} onClose={() => setTransfer(null)} /> : null}
+    {transfer && transfer.type === 'import' ? <ImportPsbtModal key={transfer.result || 'open'} initial={{ result: transfer.result }} onImport={importPsbt} onClose={() => setTransfer(null)} /> : null}
     {deleting ? <Modal title="Delete saved PSBT?" onClose={() => setDeleting(null)}>
       <Text variant="body">This transaction is not confirmed. Delete its saved signing progress? This does not cancel a broadcast transaction.</Text>
       <ModalActions><Btn id="delete" onClick={() => remove(deleting)} /></ModalActions>

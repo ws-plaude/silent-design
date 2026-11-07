@@ -17,7 +17,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Primitives.jsx?v=36"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Layout.jsx?v=3"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Widgets.jsx?v=67"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=46"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=47"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Modal.jsx?v=8"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Address.jsx?v=9"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Data.jsx?v=20"></script>
@@ -27,10 +27,10 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/AddKey.jsx?v=28"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/TxFlow.jsx?v=6"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=52"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=55"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=66"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=63"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=64"></script>
 
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
     const W = WALLETS[KNOWN_WALLETS[0]] || Object.values(WALLETS)[0];
@@ -84,6 +84,10 @@
           { title: 'Send: selected quote unavailable, no fiat entry or equivalents', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <PriceFeedProvider sources={[{ ...PRICE_FEED_SOURCES[0], rates: {} }]} initialSelection={{ source: PRICE_FEED_SOURCES[0].id, currency: 'EUR' }}><SendScreen wallet={W} initial={{ payments: [{ address: MUSIG_ADDRESS, amount: '0.005', label: 'Invoice', max: false }] }} /></PriceFeedProvider> },
           { title: 'Send: Default recommendation at 0.5 sat/vB; typing a rate or toggling absolute fee switches to Manual', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <FeeFeedProvider sources={FEE_FEED_SOURCES} initialPreferences={{ mode: 'Default', source: FEE_FEED_SOURCES[0].id }}><SendScreen wallet={W} initial={{ payments: [{ address: MUSIG_ADDRESS, amount: '0.005', label: 'Invoice', max: false }] }} /></FeeFeedProvider> },
           { title: 'Send: Smart starts at Medium (0.75 sat/vB); select Low (0.25) or Fast (2) locally in Send, never in global preferences', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <FeeFeedProvider sources={FEE_FEED_SOURCES} initialPreferences={{ mode: 'Smart', source: FEE_FEED_SOURCES[1].id }}><SendScreen wallet={W} initial={{ payments: [{ address: MUSIG_ADDRESS, amount: '0.005', label: 'Invoice', max: false }] }} /></FeeFeedProvider> },
+          { title: 'Send: Export PSBT… once the transaction is built: save the base64 to a .psbt file or copy it (copied)', tag: 'ExportPsbtModal', span: 'full', frame: true, height: 1300, el: <div style={{ position: 'relative', height: '100%' }}><SendScreen wallet={W} initial={{ payments: [{ address: MUSIG_ADDRESS, amount: '0.005', label: 'Invoice', max: false }], modal: { type: 'export', initial: { done: 'copied' } } }} /></div> },
+          { title: 'Send: Import PSBT…, base64 from a .psbt file or the clipboard', tag: 'ImportPsbtModal', span: 'full', frame: true, height: 1300, el: <div style={{ position: 'relative', height: '100%' }}><SendScreen wallet={W} initial={{ modal: { type: 'import' } }} /></div> },
+          { title: 'Send: Import PSBT… refused, it spends no coin of this account; nothing is loaded', tag: 'ImportPsbtModal', span: 'full', frame: true, height: 1300, el: <div style={{ position: 'relative', height: '100%' }}><SendScreen wallet={W} initial={{ modal: { type: 'import', initial: { result: 'failed' } } }} /></div> },
+          { title: 'Send: an imported PSBT, locked as if built here; Cancel lets it go, Sign signs it', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <SendScreen wallet={W} initial={{ imported: true, payments: [{ address: MUSIG_ADDRESS, amount: '0.005', label: '', max: false }] }} /> },
         ]},
         { name: 'Transaction shape', items: [
           { title: 'Populated (2 in → recipient · change · fee)', tag: 'TxFlow', span: 'span2', el: <Card tone="inset" style={{ padding: '12px 10px 8px' }}><TxFlow inputs={inItems} outputs={outItems} /></Card> },

@@ -75,7 +75,12 @@ function RecipientCard({ out, idx, deletable, canMax, maxAmount, onChange, onDel
    path, signs (Sign starts the session), then runs the MuSig2 rounds on the signing card
    (musig/SigningSection.cpp). While the step holds a transaction, the payments and the
    coins are locked and the fee inputs and Clear are hidden. `initial.round` opens a
-   Multikey Send prepared, at that round (1 | 2 | 'ready'), with `initial.payments`. */
+   Multikey Send prepared, at that round (1 | 2 | 'ready'), with `initial.payments`.
+   Export PSBT… hands out the PSBT Sign would sign as base64 (ExportPsbtModal): an sp
+   account once the transaction is built, a Multikey account while its session runs. An
+   sp account also has Import PSBT… under its actions (ImportPsbtModal): the PSBT imported shows here
+   locked, as if built here, Cancel letting it go and Sign signing it (`initial.imported`).
+   `initial.modal` opens with { type: 'export' | 'import', initial } shown. */
 function SendScreen({ wallet, initial = {}, onProgress }) {
   const { price } = React.useContext(PriceFeedContext);
   const { preferences, rate } = React.useContext(FeeFeedContext);
@@ -89,8 +94,10 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
   const [feeTier, setFeeTier] = React.useState('Medium');
   const [auto, setAuto] = React.useState(!initial.inputs);
   const [selected, setSelected] = React.useState(initial.inputs ? Object.fromEntries(initial.inputs.map((_, i) => [i, true])) : {});
-  const [modal, setModal] = React.useState(null); // null | 'confirm' | 'sending' | 'sent'
+  const [modal, setModal] = React.useState(initial.modal || null); // null | 'confirm' | 'sending' | 'sent'
   const [signed, setSigned] = React.useState(false);
+  /* an sp account holds an imported PSBT: Send shows it locked */
+  const [imported, setImported] = React.useState(!!initial.imported);
   const [path, setPath] = React.useState(initial.path || keyPath); // the Multikey spend path
   const [round, setRound] = React.useState(initial.round || null); // null | 1 | 2 | 'ready'
   const [progress, setProgress] = React.useState(initial);
@@ -103,12 +110,12 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
   const updateRound = r => { setRound(r); updateProgress({ round: r, ...(r === 'ready' ? { finalized: true } : {}) }); };
 
   React.useEffect(() => {
-    setOutputs(initial.payments || [blankOutput()]); setModal(null); setSigned(false);
+    setOutputs(initial.payments || [blankOutput()]); setModal(initial.modal || null); setSigned(false);
     setPath(initial.path || keyPath); setRound(initial.round || null);
   }, [wallet]);
 
   // The signing step holds a transaction: signed (sp) or prepared (Multikey).
-  const held = musig ? round !== null : signed || modal === 'signer';
+  const held = musig ? round !== null : signed || imported || modal === 'signer';
   const recommendation = rate(feeMode, feeTier);
   // Fallback and explicit overrides stay Manual until the user opts in again.
   React.useEffect(() => {
@@ -272,6 +279,8 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
     : !valid ? 'Transaction is not valid' : null;
     /* Multikey: only the reason Sign is disabled; the rounds run in the Sign modal */
   const musigStep = musig && !held && prepareReason ? <Text variant="caption">{prepareReason}</Text> : null;
+  /* sp: Import PSBT… under the actions (sp/SpSigning.cpp, the step's own widget), the fee row being full */
+  const spStep = !musig && !held ? <Row><Btn id="import_psbt" onClick={() => setModal({ type: 'import' })} /></Row> : null;
 
   const actionRow = (
     <Row align="flex-end" gap="s">
@@ -297,6 +306,8 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
         <Row gap="s" style={{ flex: 'none' }}>
           {/* while a session runs: Cancel drops it, Sign reopens the Sign modal at its round */}
           {held ? <Btn id="cancel_signed" onClick={() => { setRound(null); setRestored(false); setSelected({}); setProgress({}); }} /> : <Btn id="clear" onClick={clearAll} />}
+          {/* while a session runs: Export PSBT… hands out its PSBT, progress included */}
+          {held ? <Btn id="export_psbt" onClick={() => setModal({ type: 'export' })} /> : null}
           <Btn id="sign" disabled={!held && !!prepareReason} onClick={() => { if (!held) setRound(1); setModal({ type: 'musig' }); }} style={{ flex: 'none' }} />
         </Row>
       ) : (
@@ -304,7 +315,8 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
         {signed ? (
           <Pill id="tx_signed" />
         ) : null}
-        {signed ? <Btn id="cancel_signed" onClick={() => setSigned(false)} /> : <Btn id="clear" onClick={clearAll} />}
+        {signed || imported ? <Btn id="cancel_signed" onClick={() => { setSigned(false); setImported(false); }} /> : <Btn id="clear" onClick={clearAll} />}
+        {signed ? null : <Btn id="export_psbt" disabled={!valid} onClick={() => setModal({ type: 'export' })} />}
         {signed ? (
           <Btn id="broadcast" onClick={() => setModal({ type: 'broadcast' })} style={{ flex: 'none' }} />
         ) : (
@@ -330,6 +342,7 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
           {summaryRows}
           <div style={{ marginTop: 'var(--space-m)' }}>{actionRow}</div>
           {musigStep ? <div style={{ marginTop: 'var(--space-m)' }}>{musigStep}</div> : null}
+          {spStep ? <div style={{ marginTop: 'var(--space-s)' }}>{spStep}</div> : null}
         </React.Fragment>
       ) : (
         /* single column: summary, then buttons, then the diagram last */
@@ -337,6 +350,7 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
           {summaryRows}
           {actionRow}
           {musigStep}
+          {spStep}
           {txDiagram}
         </Stack>
       )}
@@ -368,10 +382,70 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
           onRound={updateRound} onClose={() => setModal(null)}
           onBroadcast={() => { updateProgress({ broadcast: true, finalized: true }); setModal({ type: 'sent', txid: MUSIG_TXID }); }} />
       ) : null}
+      {modal && modal.type === 'export' ? (
+        <ExportPsbtModal name={musig ? progress.txid || MUSIG_TXID : ''} initial={modal.initial} onClose={() => setModal(null)} />
+      ) : null}
+      {modal && modal.type === 'import' ? (
+        /* a valid PSBT closes the modal and shows here, locked */
+        <ImportPsbtModal initial={modal.initial} onClose={() => setModal(null)}
+          onImport={() => { setOutputs([{ address: MUSIG_ADDRESS, amount: '0.005', label: '', max: false }]); setImported(true); setModal(null); }} />
+      ) : null}
       {modal && modal.type === 'sent' ? (
         <SentModal txid={modal.txid} onClose={() => { clearAll(); initializeFees(); setModal(null); }} />
       ) : null}
     </React.Fragment>
+  );
+}
+
+/* Export PSBT (account/PsbtTransfer.cpp, ExportPsbt): the PSBT as base64 text, saved to
+   a .psbt file or copied to the clipboard. The file's default name is `name` (the txid, a
+   saved PSBT's label), else psbt-<date>-<time>; it holds the same base64 text. Each action
+   says it is done in a notice under the text; the header × closes. `initial.done`:
+   'saved' | 'copied' | 'failed'. */
+function ExportPsbtModal({ name = '', onClose, initial = {} }) {
+  const [done, setDone] = React.useState(initial.done || null);
+  const file = `${(name || 'psbt-20261107-120000').replace(/[^A-Za-z0-9._-]+/g, '_')}.psbt`;
+  return (
+    <Modal title="Export PSBT" onClose={onClose}>
+      <Stack gap="m">
+        <Text variant="body">Save the PSBT as a base64 .psbt file, or copy its base64 text to the clipboard, to sign it in another wallet or hand it to a cosigner.</Text>
+        {done === 'saved' ? <Notice tone="success">Saved to /home/alice/{file}</Notice> : null}
+        {done === 'copied' ? <Notice tone="success">Copied to the clipboard</Notice> : null}
+        {done === 'failed' ? <Notice tone="error">The PSBT is not saved: Permission denied</Notice> : null}
+      </Stack>
+      <ModalActions>
+        <Btn id="save_to_file" onClick={() => setDone('saved')} />
+        <Btn id="copy_to_clipboard" onClick={() => setDone('copied')} />
+      </ModalActions>
+    </Modal>
+  );
+}
+
+/* Import PSBT (account/PsbtTransfer.cpp, ImportPsbt): a PSBT in base64 (a binary .psbt
+   is read too), from a .psbt file or the clipboard, checked by the account. A refused one
+   says why in an error notice and nothing is saved. `onImport()` is the account's answer:
+   an sp Send closes the modal and shows the transaction; the Multikey PSBT tab says it is
+   saved, or merged into the saved PSBT of the same transaction. `initial.result`:
+   'saved' | 'merged' | 'failed' | 'empty'. */
+const PSBT_IMPORT_NOTICES = {
+  saved: ['success', 'Imported: the PSBT is in the list, ready to sign.'],
+  merged: ['success', 'This transaction is already saved: the signatures and nonces of the PSBT are merged into it.'],
+  failed: ['error', 'The PSBT is not imported: The PSBT does not spend this account\'s coins: unknown coin 3a9f2c…1d4e:0'],
+  empty: ['error', 'The PSBT is not imported: The clipboard holds no text'],
+};
+function ImportPsbtModal({ onImport, onClose, initial = {} }) {
+  const notice = PSBT_IMPORT_NOTICES[initial.result];
+  return (
+    <Modal title="Import PSBT" onClose={onClose}>
+      <Stack gap="m">
+        <Text variant="body">Import a PSBT in base64 from a .psbt file or the clipboard. It must spend this account's coins.</Text>
+        {notice ? <Notice tone={notice[0]}>{notice[1]}</Notice> : null}
+      </Stack>
+      <ModalActions>
+        <Btn id="paste_from_clipboard" onClick={onImport} />
+        <Btn id="open_file" onClick={onImport} />
+      </ModalActions>
+    </Modal>
   );
 }
 
@@ -400,6 +474,6 @@ function SentModal({ onClose }) {
   );
 }
 
-Object.assign(window, { SendScreen, BroadcastModal, SentModal, SENT_TXID,
+Object.assign(window, { SendScreen, BroadcastModal, SentModal, SENT_TXID, ExportPsbtModal, ImportPsbtModal,
   RecipientCard,
   looksLikeAmount, looksLikeAddress, btcToFiat, fiatToBtc, formatFiat });

@@ -18,7 +18,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Primitives.jsx?v=36"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Layout.jsx?v=5"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Widgets.jsx?v=67"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=46"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=47"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Modal.jsx?v=12"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Address.jsx?v=10"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Data.jsx?v=20"></script>
@@ -28,10 +28,10 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/AddKey.jsx?v=28"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/TxFlow.jsx?v=6"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=52"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=55"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=66"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=63"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=64"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/GlobalSettings.jsx?v=32"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
     const F = (el, h = 560) => ({ frame: true, height: h, el: <div style={{ position: 'relative', height: '100%' }}>{el}</div> });
@@ -50,14 +50,14 @@
       const [resume, setResume] = React.useState(null);
       const [version, setVersion] = React.useState(0);
       const [saveWarning, setSaveWarning] = React.useState(initial.saveWarning || '');
-      return <Row grow align="stretch" style={{ height: '100%' }}>
+      return <Row grow align="stretch" style={{ height: '100%', position: 'relative' }}>
         <Sidebar musig active={screen} onSelect={setScreen} />
         <Stack grow style={{ minWidth: 0 }}>
           <Stack grow style={{ display: screen === 'send' ? 'flex' : 'none', minHeight: 0 }}>
             <SendScreen key={version} wallet={WALLETS.multikey} initial={resume || {}}
               onProgress={patch => setRecords(rows => rows.map(r => resume && r.id === resume.id ? { ...r, ...patch } : r))} />
           </Stack>
-          {screen === 'psbt' ? <SavedPsbts records={records} onChange={setRecords} error={initial.error} saveWarning={saveWarning}
+          {screen === 'psbt' ? <SavedPsbts records={records} onChange={setRecords} error={initial.error} saveWarning={saveWarning} modal={initial.modal}
             onRetry={() => setSaveWarning('')}
             onOpen={r => { setResume({ ...r, saveWarning }); setVersion(n => n + 1); setScreen('send'); }} /> : null}
           {screen !== 'psbt' && screen !== 'send' ? <ScreenWrap title={screen} /> : null}
@@ -98,6 +98,7 @@
           { title: 'Coins: the core panel', tag: 'CoinsScreen', span: 'full', frame: true, height: 420, el: <CoinsScreen wallet={WALLETS.multikey} /> },
           { title: 'Send: the core panel, its signing step the spend path and Sign (fill a payment, then Sign and sign)', tag: 'SendScreen', span: 'full', frame: true, height: 1100, el: <SendScreen wallet={WALLETS.multikey} /> },
           { title: 'Send: prepared, round 2 next; payments and coins locked, fee and Clear hidden', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <SendScreen wallet={WALLETS.multikey} initial={{ round: 2, payments: [{ address: 'bcrt1pfml94fqkjkwhlpeeychsxxwvwqkclmw02zv8y6nkmshcdsts6jjsl989et', amount: '0.005', label: '', max: false }] }} /> },
+          { title: 'Send: prepared, Export PSBT… hands out the session\'s PSBT, its progress included', tag: 'ExportPsbtModal', span: 'full', frame: true, height: 1300, el: <div style={{ position: 'relative', height: '100%' }}><SendScreen wallet={WALLETS.multikey} initial={{ round: 2, payments: [{ address: 'bcrt1pfml94fqkjkwhlpeeychsxxwvwqkclmw02zv8y6nkmshcdsts6jjsl989et', amount: '0.005', label: '', max: false }], modal: { type: 'export' } }} /></div> },
           { title: 'Receive: the Taproot section only', tag: 'ReceiveScreen', span: 'full', frame: true, height: 460, el: <ReceiveScreen wallet={WALLETS.multikey} /> },
           { title: 'Settings: Electrum, then the account\'s descriptor, cosigners, Register Descriptor and Delete', tag: 'MusigSettingsScreen', span: 'full', frame: true, height: 700, el: <SettingsScreen wallet={WALLETS.multikey} /> },
           { title: 'Register Descriptor: on open, Alice\'s USB device being checked, the QR keys not registered, the hot key not needed', tag: 'RegisterDescriptorModal', span: 'span2', ...F(<RegisterDescriptorModal onClose={noop} initial={{ states: { '28645006': 'pending', '73c5da0a': 'checking', 'b8688df1': 'pending', '3f635a63': 'not_needed' } }} />, 560) },
@@ -108,6 +109,9 @@
         ]},
         { name: 'Saved PSBTs', items: [
           { title: 'PSBT: open a transaction to resume locked Send; edit labels, show confirmed, delete with confirmation only while unconfirmed', tag: 'SavedPsbts', span: 'full', frame: true, height: 1300, el: <SavedPsbtDemo /> },
+          { title: 'PSBT: Import PSBT… reads a cosigner\'s base64 PSBT from a .psbt file or the clipboard (try it: saved, then merged)', tag: 'ImportPsbtModal', span: 'full', frame: true, height: 1300, el: <SavedPsbtDemo initial={{ modal: { type: 'import' } }} /> },
+          { title: 'PSBT: an import of a saved transaction merges its signatures and nonces, no second row', tag: 'ImportPsbtModal', span: 'full', frame: true, height: 1300, el: <SavedPsbtDemo initial={{ modal: { type: 'import', result: 'merged' } }} /> },
+          { title: 'PSBT: a row\'s Export (download icon) hands its PSBT out as base64, named after its label', tag: 'ExportPsbtModal', span: 'full', frame: true, height: 1300, el: <SavedPsbtDemo initial={{ modal: { type: 'export', record: SAVED_PSBTS[0] } }} /> },
           { title: 'PSBT: no prepared transactions', tag: 'SavedPsbts', span: 'full', frame: true, height: 340, el: <SavedPsbtDemo initial={{ records: [] }} /> },
           { title: 'PSBT: save failed, Retry saving; progress stays available', tag: 'SavedPsbts', span: 'full', frame: true, height: 1300, el: <SavedPsbtDemo initial={{ saveWarning: 'Could not write encrypted state.' }} /> },
           { title: 'PSBT: list or restore failure', tag: 'SavedPsbts', span: 'full', frame: true, height: 460, el: <SavedPsbtDemo initial={{ records: [], error: 'Could not load saved PSBTs: encrypted state is unavailable.' }} /> },

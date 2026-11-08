@@ -28,7 +28,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/AddKey.jsx?v=28"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/TxFlow.jsx?v=6"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=56"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=57"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=68"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=65"></script>
@@ -98,6 +98,7 @@
           { title: 'Coins: the core panel', tag: 'CoinsScreen', span: 'full', frame: true, height: 420, el: <CoinsScreen wallet={WALLETS.multikey} /> },
           { title: 'Send: the core panel, its signing step the spend path and Sign (fill a payment, then Sign and sign)', tag: 'SendScreen', span: 'full', frame: true, height: 1100, el: <SendScreen wallet={WALLETS.multikey} /> },
           { title: 'Send: prepared, round 2 next; payments and coins locked, fee and Clear hidden', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <SendScreen wallet={WALLETS.multikey} initial={{ round: 2, payments: [{ address: 'bcrt1pfml94fqkjkwhlpeeychsxxwvwqkclmw02zv8y6nkmshcdsts6jjsl989et', amount: '0.005', label: '', max: false }] }} /> },
+          { title: 'Send: finalized, every signature in; Broadcast where Sign was opens the Sign modal at its Broadcast', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <SendScreen wallet={WALLETS.multikey} initial={{ round: 'ready', finalized: true, payments: [{ address: 'bcrt1pfml94fqkjkwhlpeeychsxxwvwqkclmw02zv8y6nkmshcdsts6jjsl989et', amount: '0.005', label: '', max: false }] }} /> },
           { title: 'Send: prepared, Export PSBT… hands out the session\'s PSBT, its progress included', tag: 'ExportPsbtModal', span: 'full', frame: true, height: 1300, el: <div style={{ position: 'relative', height: '100%' }}><SendScreen wallet={WALLETS.multikey} initial={{ round: 2, payments: [{ address: 'bcrt1pfml94fqkjkwhlpeeychsxxwvwqkclmw02zv8y6nkmshcdsts6jjsl989et', amount: '0.005', label: '', max: false }], modal: { type: 'export' } }} /></div> },
           { title: 'Receive: the Taproot section only', tag: 'ReceiveScreen', span: 'full', frame: true, height: 460, el: <ReceiveScreen wallet={WALLETS.multikey} /> },
           { title: 'Settings: Electrum, then the account\'s descriptor, cosigners, Register Descriptor and Delete', tag: 'MusigSettingsScreen', span: 'full', frame: true, height: 700, el: <SettingsScreen wallet={WALLETS.multikey} /> },

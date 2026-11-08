@@ -73,8 +73,9 @@ function RecipientCard({ out, idx, deletable, canMax, maxAmount, onChange, onDel
    selection, the transaction, then the account's signing step (SendSigning). An sp
    account signs then broadcasts (sp/SpSigning.cpp); a Multikey Wallet picks its spend
    path, signs (Sign starts the session), then runs the MuSig2 rounds on the signing card
-   (musig/SigningSection.cpp). While the step holds a transaction, the payments and the
-   coins are locked and the fee inputs and Clear are hidden. `initial.round` opens a
+   (musig/SigningSection.cpp); once finalized, Broadcast shows where Sign was. While the
+   step holds a transaction, the payments and the coins are locked and the fee inputs
+   and Clear are hidden. `initial.round` opens a
    Multikey Send prepared, at that round (1 | 2 | 'ready'), with `initial.payments`.
    Export PSBT… hands out the PSBT Sign would sign as base64 (ExportPsbtModal) once the
    transaction is built, on sp and Multikey alike, whether or not this wallet can sign it
@@ -283,8 +284,11 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
   /* sp: Import PSBT… under the actions (sp/SpSigning.cpp, the step's own widget), the fee row being full */
   const spStep = !musig && !held ? <Row><Btn id="import_psbt" onClick={() => setModal({ type: 'import' })} /></Row> : null;
 
+  /* The fee inputs and the step's buttons on one line; when one line cannot hold both
+     at their full width (a narrow column, the Smart tier shown), the buttons wrap onto a
+     line of their own, right-aligned (Qt: Send's ActionRow, issue #56). */
   const actionRow = (
-    <Row align="flex-end" gap="s">
+    <Row align="flex-end" gap="s" wrap>
       {held ? null : (
       <React.Fragment>
       <ComboBox value={feeMode} options={['Manual', 'Default', 'Smart']} width={120} onChange={pickFeeMode} />
@@ -304,15 +308,18 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
       <Spacer />
       {musig ? (
         /* The Multikey step's button: Sign (starts the MuSig2 rounds), disabled while it holds the transaction. */
-        <Row gap="s" style={{ flex: 'none' }}>
-          {/* while a session runs: Cancel drops it, Sign reopens the Sign modal at its round */}
+        <Row gap="s" style={{ flex: 'none', marginLeft: 'auto' }}>
+          {/* while a session runs: Cancel drops it, Sign reopens the Sign modal at its round;
+              once finalized, Broadcast takes Sign's place and opens it at its Broadcast (issue #56) */}
           {held ? <Btn id="cancel_signed" onClick={() => { setRound(null); setRestored(false); setSelected({}); setProgress({}); }} /> : <Btn id="clear" onClick={clearAll} />}
           {/* once built: Export PSBT… hands out the PSBT, a running session's with its progress */}
           {held || valid ? <Btn id="export_psbt" onClick={() => setModal({ type: 'export' })} /> : null}
-          <Btn id="sign" disabled={!held && !!prepareReason} onClick={() => { if (!held) setRound(1); setModal({ type: 'musig' }); }} style={{ flex: 'none' }} />
+          {held && round === 'ready'
+            ? <Btn id="broadcast" onClick={() => setModal({ type: 'musig' })} style={{ flex: 'none' }} />
+            : <Btn id="sign" disabled={!held && !!prepareReason} onClick={() => { if (!held) setRound(1); setModal({ type: 'musig' }); }} style={{ flex: 'none' }} />}
         </Row>
       ) : (
-      <Row gap="s" style={{ flex: 'none' }}>
+      <Row gap="s" style={{ flex: 'none', marginLeft: 'auto' }}>
         {signed ? (
           <Pill id="tx_signed" />
         ) : null}

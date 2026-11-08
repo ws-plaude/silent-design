@@ -783,7 +783,9 @@ const SAVED_PSBT_TEMPLATE = {
   fee: '280', path: 'Alice + Bob', cosigners: ['73c5da0a', 'b8688df1'],
 };
 const SAVED_PSBTS = [
-  { id: 'partial', txid: MUSIG_TXID, label: 'Invoice', ...SAVED_PSBT_TEMPLATE, round: 2, done: { 1: ['73c5da0a', 'b8688df1'], 2: ['73c5da0a'] }, edited: '2026-10-20 14:32' },
+  /* reset twice: its active attempt 2, the archived 0 and 1 (oldest first) with their own progress */
+  { id: 'partial', txid: MUSIG_TXID, label: 'Invoice', ...SAVED_PSBT_TEMPLATE, round: 2, done: { 1: ['73c5da0a', 'b8688df1'], 2: ['73c5da0a'] }, edited: '2026-10-20 14:32',
+    attemptId: 2, archivedAttempts: [{ attemptId: 0, round: 2, done: { 1: ['73c5da0a', 'b8688df1'], 2: ['b8688df1'] } }, { attemptId: 1, round: 1, done: { 1: ['73c5da0a'] } }] },
   { id: 'finalized', txid: '702895f3cc36d5e35514b5ff7af55c9b0822e114560ebe6fdab238067db076e3', label: 'Ready', ...SAVED_PSBT_TEMPLATE, round: 'ready', finalized: true, edited: '2026-10-19 09:15' },
   { id: 'broadcast', txid: '803895f3cc36d5e35514b5ff7af55c9b0822e114560ebe6fdab238067db076e4', label: '', ...SAVED_PSBT_TEMPLATE, round: 'ready', finalized: true, broadcast: true, edited: '2026-10-18 17:48' },
   { id: 'deprecated', txid: 'a15995f3cc36d5e35514b5ff7af55c9b0822e114560ebe6fdab238067db076e6', label: 'Old draft', ...SAVED_PSBT_TEMPLATE, round: 1, done: { 1: ['73c5da0a'] }, edited: '2026-10-15 08:20', conflicts: ['904895f3cc36d5e35514b5ff7af55c9b0822e114560ebe6fdab238067db076e5'] },
@@ -797,8 +799,12 @@ const IMPORTED_PSBT = { id: 'imported', txid: 'b26a95f3cc36d5e35514b5ff7af55c9b0
    Import PSBT… (title right) saves a cosigner's PSBT as one more row, or merges it into
    the row of the same transaction; each row's Export (download icon) hands its PSBT out
    as base64, named after its label, else its txid. `modal`: { type: 'export', record } |
-   { type: 'import', result } shown on open. */
-function SavedPsbts({ records = SAVED_PSBTS, compact = false, tip = 0, onOpen, onChange, saveWarning = '', onRetry, error = '', modal: initialModal = null }) {
+   { type: 'import', result } shown on open.
+   A transaction signed in several attempts (Reset) folds: its leading chevron shows one
+   sub-row per attempt, the active one first then the archived ones newest first, each
+   with its own signatures in. Folded by default; a sub-row opens nothing (the active
+   attempt stays). A single attempt has no chevron. `unfolded`: record ids unfolded on open. */
+function SavedPsbts({ records = SAVED_PSBTS, compact = false, tip = 0, onOpen, onChange, saveWarning = '', onRetry, error = '', modal: initialModal = null, unfolded: initialUnfolded = [] }) {
   const [confirmed, setConfirmed] = React.useState(false);
   const [deleting, setDeleting] = React.useState(null);
   const [transfer, setTransfer] = React.useState(initialModal);
@@ -821,17 +827,26 @@ function SavedPsbts({ records = SAVED_PSBTS, compact = false, tip = 0, onOpen, o
   const [draft, setDraft] = React.useState('');
   const commit = r => { onChange && onChange(records.map(row => row.id === r.id ? { ...row, label: draft } : row)); setEditing(null); };
   const remove = record => { onChange && onChange(records.filter(r => r.id !== record.id)); setDeleting(null); };
-  const rows = records.filter(r => confirmed || !r.height);
+  const [unfolded, setUnfolded] = React.useState(initialUnfolded);
+  const fold = id => setUnfolded(u => u.includes(id) ? u.filter(x => x !== id) : [...u, id]);
+  /* the active attempt first, then the archived ones, newest first */
+  const attemptsOf = r => [{ ...r, active: true, attemptId: r.attemptId || 0 }, ...[...(r.archivedAttempts || [])].reverse()];
+  const rows = records.filter(r => confirmed || !r.height).flatMap(r => [r,
+    ...(unfolded.includes(r.id) ? attemptsOf(r).map(a => ({ sub: true, parent: r, attempt: a })) : [])]);
   /* Laid out like the coin list (CoinTable): one clickable row per PSBT, last edited · signatures in/total,
      muted '—' for no label, status pill, right-aligned amount. Row click resumes it. */
   /* partial signatures in (round 2); a finalized PSBT has them all */
   const sigs = r => r.finalized ? (r.cosigners || []).length : r.round === 2 || r.round === 'ready' ? ((r.done || {})[2] || []).length : 0;
   const amount = r => (r.payments || []).reduce((s, p) => s + parseFloat(p.amount || 0), 0).toFixed(8);
-  const columns = [
+  const recordColumns = [
+    { header: '', width: 34, icon: true,
+      render: r => attemptsOf(r).length > 1 ? <span onClick={e => e.stopPropagation()}><Btn id={unfolded.includes(r.id) ? 'hide_attempts' : 'show_attempts'} onClick={() => fold(r.id)} /></span> : null },
     /* widths fit the content: mono digits are 0.6em (the cell adds its own padding) */
     { header: 'Last Edited', width: DATE_COL_W[compact ? 'compact' : 'full'], mono: true, render: r => <DateStamp value={r.edited} compact={compact} /> },
-    { header: 'Signed', width: '3.6em', mono: true, render: r => `${sigs(r)}/${(r.cosigners || []).length}` },
-    { header: 'Label', grow: true, muted: r => editing !== r.id && !r.label,
+    { header: 'Signed', width: '3.6em', mono: true, render: r => `${sigs(r)}/${(r.cosigners || []).length}`,
+      sub: s => `${sigs(s.attempt)}/${(s.parent.cosigners || []).length}` },
+    { header: 'Label', grow: true, muted: r => r.sub || (editing !== r.id && !r.label),
+      sub: s => `Attempt ${s.attempt.attemptId + 1}, ${s.attempt.active ? 'active' : 'archived'}`,
       cellStyle: r => editing === r.id ? { padding: '3px 6px' } : null,
       render: r => editing === r.id
         ? <span style={{ width: '100%' }} onClick={e => e.stopPropagation()}><Input value={draft} autoFocus width="100%"
@@ -849,6 +864,9 @@ function SavedPsbts({ records = SAVED_PSBTS, compact = false, tip = 0, onOpen, o
     { header: '', width: 34, icon: true, render: r => <span onClick={e => e.stopPropagation()}><Btn id="export_row" onClick={() => setTransfer({ type: 'export', record: r })} /></span> },
     { header: '', width: 34, icon: true, render: r => <span onClick={e => e.stopPropagation()}><Btn id="delete_row" onClick={() => r.height ? remove(r) : setDeleting(r)} /></span> },
   ];
+  /* an attempt sub-row fills Signed and Label only */
+  const columns = recordColumns.map(c => ({ ...c, render: (r, i) => r.sub ? (c.sub ? c.sub(r) : null) : c.render(r, i),
+    cellStyle: c.cellStyle && (r => r.sub ? null : c.cellStyle(r)) }));
   return <React.Fragment>
     <ScreenWrap title="PSBT" titleRight={<Row gap="m"><Checkbox checked={confirmed} onChange={setConfirmed} label="Show confirmed transactions" /><Btn id="import_psbt" onClick={() => setTransfer({ type: 'import' })} /></Row>}><Stack gap="s">
       {error ? <Text variant="body">{error}</Text> : null}
@@ -856,9 +874,9 @@ function SavedPsbts({ records = SAVED_PSBTS, compact = false, tip = 0, onOpen, o
         <Text variant="body">{psbtSaveWarning(saveWarning)}</Text>
         <Row><Button role="primary" onClick={onRetry}>Retry saving</Button></Row>
       </React.Fragment> : null}
-      {rows.length ? <Table columns={columns} rows={rows} rowKey={r => r.id}
-          rowStyle={() => ({ cursor: 'pointer' })}
-          onRowClick={r => (r.conflicts || []).length ? showReplacing(r) : r.broadcast || r.height ? setViewing(r) : onOpen && onOpen(r)} />
+      {rows.length ? <Table columns={columns} rows={rows} rowKey={r => r.sub ? `${r.parent.id}/attempt/${r.attempt.attemptId}` : r.id}
+          rowStyle={r => r.sub ? null : { cursor: 'pointer' }}
+          onRowClick={r => r.sub ? null : (r.conflicts || []).length ? showReplacing(r) : r.broadcast || r.height ? setViewing(r) : onOpen && onOpen(r)} />
         : !error ? <Text variant="body">No saved PSBTs. Transactions are saved when prepared for signing.</Text> : null}
     </Stack></ScreenWrap>
     {viewing ? <TransactionModal tx={asTx(viewing)} tip={tip} compact={compact} onClose={() => setViewing(null)} /> : null}

@@ -134,6 +134,9 @@ export const BUTTONS = {
   /* a saved PSBT list row's Export (its PSBT as base64) */
   export_row: { role: 'inline-icon', icon: 'upload', iconSize: 15, title: 'Export PSBT…', w: 'Icon' },
   edit_label_row: { role: 'inline-icon', icon: 'pencil', iconSize: 15, w: 'Icon' },
+  /* a saved PSBT list row's fold of its signing attempts: folded, then unfolded */
+  show_attempts: { role: 'inline-icon', icon: 'chevron_right', iconSize: 14, title: 'Show signing attempts', w: 'Icon' },
+  hide_attempts: { role: 'inline-icon', icon: 'chevron_down', iconSize: 14, title: 'Hide signing attempts', w: 'Icon' },
   move_down: { role: 'inline-icon', icon: 'arrow_down', iconSize: 14, title: 'Move Down', w: 'Icon' },
   move_up: { role: 'inline-icon', icon: 'arrow_up', iconSize: 14, title: 'Move Up', w: 'Icon' },
   remove_payment: { role: 'inline-icon', icon: 'x', iconSize: 16, title: 'Remove Payment', w: 'Icon' },

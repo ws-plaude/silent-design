@@ -18,7 +18,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Primitives.jsx?v=36"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Layout.jsx?v=5"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Widgets.jsx?v=67"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=48"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=49"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Modal.jsx?v=12"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Address.jsx?v=10"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Data.jsx?v=20"></script>
@@ -31,7 +31,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=55"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=68"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=67"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=64"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=65"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/GlobalSettings.jsx?v=34"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
     const F = (el, h = 560) => ({ frame: true, height: h, el: <div style={{ position: 'relative', height: '100%' }}>{el}</div> });
@@ -57,7 +57,7 @@
             <SendScreen key={version} wallet={WALLETS.multikey} initial={resume || {}}
               onProgress={patch => setRecords(rows => rows.map(r => resume && r.id === resume.id ? { ...r, ...patch } : r))} />
           </Stack>
-          {screen === 'psbt' ? <SavedPsbts records={records} onChange={setRecords} error={initial.error} saveWarning={saveWarning} modal={initial.modal}
+          {screen === 'psbt' ? <SavedPsbts records={records} onChange={setRecords} error={initial.error} saveWarning={saveWarning} modal={initial.modal} unfolded={initial.unfolded}
             onRetry={() => setSaveWarning('')}
             onOpen={r => { setResume({ ...r, saveWarning }); setVersion(n => n + 1); setScreen('send'); }} /> : null}
           {screen !== 'psbt' && screen !== 'send' ? <ScreenWrap title={screen} /> : null}
@@ -71,7 +71,7 @@
       const [version, setVersion] = React.useState(0);
       return <Stack gap="s" style={{ height: '100%' }}>
         <Row gap="s" wrap>
-          <Text variant="caption">Kit data only: active attempt {saved.attemptId}, archived snapshots {saved.archivedAttempts.length}. The app has no archive browser.</Text>
+          <Text variant="caption">Kit data only: active attempt {saved.attemptId}, archived snapshots {saved.archivedAttempts.length}. The PSBT list folds them under the transaction's row.</Text>
           <Button onClick={() => { setVersion(n => n + 1); setOpen(true); }}>Reopen saved attempt</Button>
         </Row>
         <output hidden aria-label="Signing attempt fixture">{JSON.stringify(saved)}</output>
@@ -112,6 +112,8 @@
           { title: 'PSBT: Import PSBT… reads a cosigner\'s base64 PSBT from a .psbt file or the clipboard (try it: saved, then merged)', tag: 'ImportPsbtModal', span: 'full', frame: true, height: 1300, el: <SavedPsbtDemo initial={{ modal: { type: 'import' } }} /> },
           { title: 'PSBT: an import of a saved transaction merges its signatures and nonces, no second row', tag: 'ImportPsbtModal', span: 'full', frame: true, height: 1300, el: <SavedPsbtDemo initial={{ modal: { type: 'import', result: 'merged' } }} /> },
           { title: 'PSBT: a row\'s Export (download icon) hands its PSBT out as base64, named after its label', tag: 'ExportPsbtModal', span: 'full', frame: true, height: 1300, el: <SavedPsbtDemo initial={{ modal: { type: 'export', record: SAVED_PSBTS[0] } }} /> },
+          { title: 'PSBT: Invoice was reset twice, folded by default: its chevron folds its three signing attempts; a single attempt has no chevron', tag: 'SavedPsbts', span: 'full', frame: true, height: 520, el: <SavedPsbtDemo /> },
+          { title: 'PSBT: Invoice unfolded: one sub-row per attempt, active first, each with its own signatures in; a sub-row opens nothing', tag: 'SavedPsbts', span: 'full', frame: true, height: 600, el: <SavedPsbtDemo initial={{ unfolded: ['partial'] }} /> },
           { title: 'PSBT: no prepared transactions', tag: 'SavedPsbts', span: 'full', frame: true, height: 340, el: <SavedPsbtDemo initial={{ records: [] }} /> },
           { title: 'PSBT: save failed, Retry saving; progress stays available', tag: 'SavedPsbts', span: 'full', frame: true, height: 1300, el: <SavedPsbtDemo initial={{ saveWarning: 'Could not write encrypted state.' }} /> },
           { title: 'PSBT: list or restore failure', tag: 'SavedPsbts', span: 'full', frame: true, height: 460, el: <SavedPsbtDemo initial={{ records: [], error: 'Could not load saved PSBTs: encrypted state is unavailable.' }} /> },

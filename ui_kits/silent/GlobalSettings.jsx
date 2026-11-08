@@ -67,12 +67,13 @@ function PriceFeedSection({ open = true, onFold }) {
   const currencyOptions = ['None', ...currencies, ...(price.currency && !currencies.includes(price.currency) ? [currencyLabel] : [])];
   return <Stack>
     <SectionHeader label="Price feed" open={open} onToggle={onFold} />
-    {open ? <FieldGroup>
+    {/* Source and currency on one row, as Theme and Language are in General (issue #86). */}
+    {open ? <Row gap="xl" align="flex-start" wrap>
       <Field label="Source:"><ComboBox width={160} value={sourceLabel} options={sourceOptions}
         onChange={label => selectPrice(label === sourceLabel ? price.source : (sources.find(s => s.name === label) || {}).id || '', '')} /></Field>
       <Field label="Currency:"><ComboBox width={160} value={currencyLabel} options={currencyOptions} disabled={!currencies.length}
         onChange={label => selectPrice(price.source, label === currencyLabel ? price.currency : label === 'None' ? '' : label)} /></Field>
-    </FieldGroup> : null}
+    </Row> : null}
   </Stack>;
 }
 

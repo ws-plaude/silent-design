@@ -74,6 +74,7 @@ export const BUTTONS = {
   show_mnemonic: { role: 'primary', label: 'Show Mnemonic', w: 'L' },
   sign: { role: 'primary', label: 'Sign', w: 'M' },
   sign_hot: { role: 'primary', label: 'Sign', w: 'M' },
+  prepare_nonces: { role: 'primary', label: 'Prepare Nonces', w: 'L' },
   sign_round: { role: 'primary', label: 'Sign Round {n}', args: true, w: 'M' },
   try_again: { role: 'primary', label: 'Try Again', w: 'M' },
   reset_signing: { role: 'destructive', label: 'Reset', w: 'M' },
@@ -206,6 +207,7 @@ export const PILLS = {
   musig_on_device: { tone: 'off', label: 'On Device…', w: 'L' },
   musig_signing: { tone: 'off', label: 'Signing…', w: 'L' },
   musig_nonce_added: { tone: 'success', label: 'Nonce', icon: 'check', w: 'L' },
+  musig_cached: { tone: 'success', label: 'Cached', icon: 'check', w: 'L' },
   /* Settings title row: the account's network (label = the network name) */
   network: { tone: 'neutral', dataLabel: true, w: 'M' },
   /* History / Coins date column: a transaction or coin not yet in a block */

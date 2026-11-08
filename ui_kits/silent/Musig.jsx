@@ -610,30 +610,56 @@ function MusigSignModal({ signers, others = [], offline = [], unsupported = [], 
   /* the cosigners on their device now: every one can be asked at once */
   const [busy, setBusy] = React.useState([].concat(initial.busy || []));
   const [hotPrompt, setHotPrompt] = React.useState(null);
+  /* the cosigners holding a usable session in the nonce cache, bound to no transaction */
+  const [prepared, setPrepared] = React.useState(initial.cached || []);
+  /* the first signature request took every required session for this attempt (a
+     resumed round 2 or a lost session did before): only from then on Reset exists */
+  const [taken, setTaken] = React.useState(!!initial.allocated || lost
+    || (!single && !finalized && (round === 2 || round === 'ready')));
   /* 'ready' (every partial signature in) stays on step 2, its button Broadcast */
   const sr = r === 'ready' ? 2 : r;
   const stepIdx = sr - 1;
   const inRound = (done[sr] || []);
-  const left = signers.filter(s => !inRound.includes(s.fp));
+  /* on the Nonces step a cosigner whose session is cached has nothing to do */
+  const isCached = s => sr === 1 && !inRound.includes(s.fp) && prepared.includes(s.fp);
+  const left = signers.filter(s => !inRound.includes(s.fp) && !isCached(s));
   /* the signers that can sign ahead of those that cannot */
   const blocked = s => !inRound.includes(s.fp) && (offline.includes(s.fp) || unsupported.includes(s.fp));
   const usable = signers.filter(s => !blocked(s));
   const unusable = signers.filter(s => !usable.includes(s));
+  /* every signer still owing its nonces holds a cached session: the Nonces step has
+     nothing to prepare and the wizard moves on, taking no session */
+  React.useLayoutEffect(() => {
+    const owing = usable.filter(s => !inRound.includes(s.fp));
+    if (sr === 1 && !single && owing.length && owing.every(s => prepared.includes(s.fp))) setR(2);
+  }, [prepared, sr]);
   React.useEffect(() => {
     onProgress && onProgress({ ...attempt, done, lost: restartNeeded });
     if (sr === 2 && r !== 'ready' && signers.every(s => (done[2] || []).includes(s.fp))) {
       setR('ready'); onRound && onRound('ready');
     }
   }, [done, attempt, restartNeeded]);
-  const add = (fp) => { setBusy(b => [...b, fp]); setTimeout(() => {
-    setDone(d => ({ ...d, [sr]: [...(d[sr] || []), fp] }));
+  /* the first signature request takes every required session at once: every nonce
+     is in, the Send card moves to round 2 and Reset appears */
+  const takeSessions = () => {
+    if (single || taken) return;
+    setTaken(true);
+    setDone(d => ({ ...d, 1: signers.map(s => s.fp) }));
+    onRound && onRound(2);
+  };
+  /* on the Nonces step a click prepares one cached session, bound to no transaction */
+  const add = (fp) => { if (sr === 2) takeSessions(); setBusy(b => [...b, fp]); setTimeout(() => {
+    if (sr === 1) setPrepared(p => [...p, fp]);
+    else setDone(d => ({ ...d, [sr]: [...(d[sr] || []), fp] }));
     setBusy(b => b.filter(x => x !== fp));
   }, 900); };
-  const next = () => { setR(2); onRound && onRound(2); };
+  /* Continue only changes the step shown: no session is taken */
+  const next = () => setR(2);
   const reset = () => {
     setAttempt({ attemptId: attempt.attemptId + 1, baseline: { done: {} },
       archivedAttempts: [...attempt.archivedAttempts, { txid, attemptId: attempt.attemptId, baseline: attempt.baseline, done, round: r }] });
     setDone({}); setR(single ? 2 : 1); setRestartNeeded(false);
+    setPrepared([]); setTaken(false);
     setConfirmReset(false);
     onRound && onRound(single ? 2 : 1);
   };
@@ -652,12 +678,12 @@ function MusigSignModal({ signers, others = [], offline = [], unsupported = [], 
         <Text variant="body">{single ? `Click the cosigner to add ${what}.` : `Click each cosigner to add ${what}.`}</Text>
         <Stack gap="xs">
           {usable.map(s => {
-            const ok = inRound.includes(s.fp), on = busy.includes(s.fp);
+            const ok = inRound.includes(s.fp), on = busy.includes(s.fp), cachedRow = isCached(s);
             return (
               <SelectRow key={s.fp} icon={ROUTE_KINDS[s.route].icon} title={s.alias} sub={s.fp} chevron={false}
-                 status={<Pill id={ok ? (sr === 1 ? 'musig_nonce_added' : 'signer_signed') : on ? (s.route === 'hot' ? 'musig_signing' : 'musig_on_device') : 'musig_needed'} />}
+                 status={<Pill id={ok ? (sr === 1 ? 'musig_nonce_added' : 'signer_signed') : on ? (s.route === 'hot' ? 'musig_signing' : 'musig_on_device') : cachedRow ? 'musig_cached' : 'musig_needed'} />}
                  disabled={restartNeeded}
-                 onClick={!restartNeeded && !ok && !on ? () => s.route === 'hot' ? setHotPrompt(s) : add(s.fp) : undefined} />
+                 onClick={!restartNeeded && !ok && !on && !cachedRow ? () => s.route === 'hot' ? setHotPrompt(s) : add(s.fp) : undefined} />
             );
           })}
           {unusable.map(s => {
@@ -681,7 +707,7 @@ function MusigSignModal({ signers, others = [], offline = [], unsupported = [], 
     );
     const reason = busy.length ? (busy.some(fp => signers.some(s => s.fp === fp && s.route !== 'hot')) ? 'On the device…' : 'Signing…') : left.length ? `${left.length} cosigner${left.length > 1 ? 's' : ''} still to go.` : null;
     actions = (
-      <ModalActions reason={reason} leading={<Btn id="reset_signing" disabled={!!busy.length} onClick={() => setConfirmReset(true)} />}>
+      <ModalActions reason={reason} leading={taken ? <Btn id="reset_signing" disabled={!!busy.length} onClick={() => setConfirmReset(true)} /> : null}>
         {sr === 1 ? <Btn id="continue" disabled={restartNeeded || !!reason} onClick={next} />
           : <Btn id="broadcast" disabled={restartNeeded || !!reason} onClick={onBroadcast} />}
       </ModalActions>
@@ -695,7 +721,8 @@ function MusigSignModal({ signers, others = [], offline = [], unsupported = [], 
         <Spacer />
         {actions}
       </Stack>
-      {hotPrompt ? <UnsealModal title="Sign Transaction" prompt={`Enter the password of “${hotPrompt.alias}” to sign the transaction.`} proceedId="sign_hot" closeOnSubmit onCancel={() => setHotPrompt(null)} onDone={() => { add(hotPrompt.fp); setHotPrompt(null); }} /> : null}
+      {hotPrompt && sr === 1 ? <UnsealModal title="Prepare Nonce Cache" prompt={`Enter the password of “${hotPrompt.alias}” to prepare a nonce session.`} proceedId="prepare_nonces" closeOnSubmit onCancel={() => setHotPrompt(null)} onDone={() => { setPrepared(p => [...p, hotPrompt.fp]); setHotPrompt(null); }} /> : null}
+      {hotPrompt && sr === 2 ? <UnsealModal title="Sign Transaction" prompt={`Enter the password of “${hotPrompt.alias}” to sign the transaction.`} proceedId="sign_hot" closeOnSubmit onCancel={() => setHotPrompt(null)} onDone={() => { add(hotPrompt.fp); setHotPrompt(null); }} /> : null}
       {confirmReset ? <ConfirmSigningReset onCancel={() => setConfirmReset(false)} onConfirm={reset} /> : null}
     </Modal>
   );

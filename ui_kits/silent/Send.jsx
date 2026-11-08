@@ -76,8 +76,9 @@ function RecipientCard({ out, idx, deletable, canMax, maxAmount, onChange, onDel
    (musig/SigningSection.cpp). While the step holds a transaction, the payments and the
    coins are locked and the fee inputs and Clear are hidden. `initial.round` opens a
    Multikey Send prepared, at that round (1 | 2 | 'ready'), with `initial.payments`.
-   Export PSBT… hands out the PSBT Sign would sign as base64 (ExportPsbtModal): an sp
-   account once the transaction is built, a Multikey account while its session runs. An
+   Export PSBT… hands out the PSBT Sign would sign as base64 (ExportPsbtModal) once the
+   transaction is built, on sp and Multikey alike, whether or not this wallet can sign it
+   (a Multikey session's PSBT while one runs, progress included; issue #83). An
    sp account also has Import PSBT… under its actions (ImportPsbtModal): the PSBT imported shows here
    locked, as if built here, Cancel letting it go and Sign signing it (`initial.imported`).
    `initial.modal` opens with { type: 'export' | 'import', initial } shown. */
@@ -306,8 +307,8 @@ function SendScreen({ wallet, initial = {}, onProgress }) {
         <Row gap="s" style={{ flex: 'none' }}>
           {/* while a session runs: Cancel drops it, Sign reopens the Sign modal at its round */}
           {held ? <Btn id="cancel_signed" onClick={() => { setRound(null); setRestored(false); setSelected({}); setProgress({}); }} /> : <Btn id="clear" onClick={clearAll} />}
-          {/* while a session runs: Export PSBT… hands out its PSBT, progress included */}
-          {held ? <Btn id="export_psbt" onClick={() => setModal({ type: 'export' })} /> : null}
+          {/* once built: Export PSBT… hands out the PSBT, a running session's with its progress */}
+          {held || valid ? <Btn id="export_psbt" onClick={() => setModal({ type: 'export' })} /> : null}
           <Btn id="sign" disabled={!held && !!prepareReason} onClick={() => { if (!held) setRound(1); setModal({ type: 'musig' }); }} style={{ flex: 'none' }} />
         </Row>
       ) : (

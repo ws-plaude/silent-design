@@ -25,7 +25,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Signing.jsx?v=25"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/AddKey.jsx?v=28"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=69"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=70"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=66"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
@@ -56,13 +56,16 @@
           RA('File: not a backup Silent reads', 'sp', { file: 'notes.txt', error: 'This file is not a backup Silent reads: expected a BIP138 encrypted backup of a BIP139 wallet backup or of a descriptor, a BIP139 wallet backup or a descriptor.' }, 460),
           RA('File: the file is not read', 'sp', { error: 'The file is not read: Permission denied' }, 420),
           RA('Busy: reading the backup', 'sp', { busy: 'reading' }, 380),
-          RA('Decrypt: devices trying, locked and failed', 'sp', { view: 'decrypt', file: FILE('savings') }, 560),
-          RA('Decrypt: a locked device with no state detail', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [{ id: 'hid-0006', brand: 'Blockstream', model: 'Jade', fp: null, state: 'locked' }] }, 440),
-          RA('Decrypt: no device connected', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [] }, 480),
-          RA('Decrypt: other options, invalid xpub', 'sp', { view: 'decrypt', file: FILE('savings'), options: true, xpub: 'tpubnotanxpub', xpubNote: 'Invalid xpub' }, 900),
+          RA('Decrypt: a Multikey backup, devices trying, locked and failed', 'musig', { view: 'decrypt', file: FILE('multikey') }, 560),
+          RA('Decrypt: an SP backup, the devices give no scan key, its keys offered', 'sp', { view: 'decrypt', file: FILE('savings') }, 900),
+          RA('Decrypt: an SP backup, a key asked, a key failed, a key with its error', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], keys: { '73c5da0a': { status: 'asking' }, 'f23a9e01': { status: 'failed' }, '9a41e6b3': { status: 'failed', error: 'Wrong password. Try again.' } } }, 860),
+          RA('Decrypt: a locked device with no state detail', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [{ id: 'hid-0006', brand: 'Blockstream', model: 'Jade', fp: null, state: 'locked' }] }, 760),
+          RA('Decrypt: no device connected', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [] }, 860),
+          RA('Decrypt: other options, invalid xpub', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, xpub: 'tpubnotanxpub', xpubNote: 'Invalid xpub' }, 1100),
+          RA('Decrypt: other options, an SP backup that no xpub opens', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, xpub: DEMO_XPUB_T, xpubNote: 'This backup opens with a silent payment scan key, which no xpub gives: ask one of your keys for it, or enter its mnemonic' }, 1100),
           RA('Decrypt: other options, an xpub that cannot decrypt it', 'musig', { view: 'decrypt', file: FILE('multikey'), devices: [], options: true, xpub: DEMO_XPUB_T, xpubNote: 'Xpub is valid but cannot decrypt this file' }, 900),
-          RA('Decrypt: other options, the risk acknowledged, a mnemonic that cannot decrypt it', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, ack: true, mnemonic: 'abandon ability able about above absent absorb abstract absurd abuse access account', mnemonicNote: 'Mnemonic is valid but cannot decrypt the file' }, 860),
-          RA('Decrypt: other options, an invalid mnemonic', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, ack: true, mnemonic: 'abandon ability able about above absent absorb abstract absurd abuse access hello', mnemonicNote: 'Invalid mnemonic' }, 860),
+          RA('Decrypt: other options, the risk acknowledged, a mnemonic that cannot decrypt it', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, ack: true, mnemonic: 'abandon ability able about above absent absorb abstract absurd abuse access account', mnemonicNote: 'Mnemonic is valid but cannot decrypt the file' }, 1240),
+          RA('Decrypt: other options, an invalid mnemonic', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, ack: true, mnemonic: 'abandon ability able about above absent absorb abstract absurd abuse access hello', mnemonicNote: 'Invalid mnemonic' }, 1240),
           RA('Review: a silent payment backup, decrypted with a device', 'sp', { view: 'review', opener: 'Decrypted with Ledger Nano S Plus #73c5da0a' }, 700),
           RA('Review: a Multikey backup, decrypted with an xpub, with its warning', 'musig', { view: 'review', opener: 'Decrypted with the xpub given' }, 720),
           RA('Review: a plain descriptor, its network unsaid, no name yet', 'descriptor', { view: 'review' }, 760),

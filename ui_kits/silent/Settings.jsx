@@ -186,11 +186,12 @@ function BackupAccountModal({ account = 'savings', initial = {}, onClose }) {
 /* What a read backup says (Qt: backend::BackupInfo, from the account backup's contents):
    one fixture per account kind, the servers and keys of the Data.jsx accounts. `paths`: the
    derivation paths of the keys it is encrypted to (Qt: IAccountBackend::backupLocked), none
-   for a plain backup. `network` null: a descriptor whose test keys leave it unsaid. */
+   for a plain backup; an SP backup names its BIP352 scan path alone, as it opens only with
+   a silent payment scan key. `network` null: a descriptor whose test keys leave it unsaid. */
 const BACKUP_INFO = {
   sp: {
     account: 'savings', kind: 'Silent Payment Wallet', network: 'Signet',
-    paths: ["m/352'/1'/0'/0'/0"],
+    paths: ["m/352'/1'/0'/1'/0"],
     includes: [
       "The silent payment descriptor, with its scan key: whoever opens the backup sees the account's payments",
       'Server: https://blindbit.silentpayments.dev',
@@ -239,8 +240,13 @@ const BACKUP_INFO = {
 /* The networks a backup that leaves its network unsaid can be of: only test keys do. */
 const RESTORE_NETWORKS = ['Signet', 'Testnet', 'Regtest'];
 
+/* A BIP352 scan path, m/352'/coin'/account'/1'/0, its coin captured (Qt: SCAN_PATH_RE). */
+const SCAN_PATH_RE = /^m\/352'\/(\d+)'\/\d+'\/1'\/0$/;
+
 /* The connected devices the Decrypt view tries (Qt: RestoreAccount::DeviceTry), Data.jsx
-   DEVICES with `tries`: 'trying' | 'failed' for a ready one; a locked one is not tried. */
+   DEVICES with `tries`: 'trying' | 'failed' for a ready one; a locked one is not tried. On a
+   backup that opens with a scan key only, a ready device is asked nothing: no device gives
+   a scan key. */
 const RESTORE_DEVICES = [
   { ...DEVICES[0], tries: 'trying' },
   { ...DEVICES[3] },
@@ -249,9 +255,10 @@ const RESTORE_DEVICES = [
 
 /* One device of the Decrypt view: its name, `#fingerprint` or its state detail, and how its
    try goes (Qt: RestoreAccount::refreshDevices, a static SelectRow). */
-function RestoreDeviceRow({ device }) {
+function RestoreDeviceRow({ device, scanKeyOnly }) {
   const ready = device.state === 'ready';
-  const note = !ready ? null : device.tries === 'failed' ? 'Failed to decrypt the file with this device'
+  const note = !ready ? null : scanKeyOnly ? 'Gives no silent payment scan key'
+    : device.tries === 'failed' ? 'Failed to decrypt the file with this device'
     : 'Trying to decrypt with this device…';
   return (
     <SelectRow icon="usb" title={deviceName(device)} chevron={false} note={note}
@@ -260,6 +267,28 @@ function RestoreDeviceRow({ device }) {
 }
 
 const XPUB_LIKE = /^[tx]pub[1-9A-HJ-NP-Za-km-z]{100,}$/;
+
+/* The keys of Keys a backup naming a scan path offers (Qt: RestoreAccount::listKeys): those
+   of the path's networks (coin 0 mainnet, else every test network) that can give their scan
+   key, by a QR or hot route. */
+function restoreKeys(paths) {
+  const scan = paths.map(p => SCAN_PATH_RE.exec(p)).find(Boolean);
+  if (!scan) return [];
+  return KEYS.filter(k => (scan[1] === '0' ? k.network === 'Bitcoin' : k.network !== 'Bitcoin')
+    && (k.routes.includes('qr') || k.routes.includes('hot')));
+}
+
+/* One key of the Keys section: clickable to ask it for its scan key, not while asking
+   (Qt: RestoreAccount::refreshKeyRows). `status`: 'offered' | 'asking' | 'failed', `error`
+   the key's own when it gave none. */
+function RestoreKeyRow({ k, status = 'offered', error, onAsk }) {
+  const note = status === 'asking' ? 'Trying to decrypt with this device…'
+    : status === 'failed' ? error || 'Its scan key cannot decrypt this file' : 'Ask for its scan key';
+  return (
+    <SelectRow icon="key" title={k.alias || k.fp} sub={`#${k.fp}`} chevron={false} note={note}
+      onClick={status === 'asking' ? undefined : onAsk} />
+  );
+}
 
 /* A Review list: a Section of bullet lines (Qt: RestoreAccount::reviewList). */
 function BackupList({ label, lines }) {
@@ -279,7 +308,9 @@ function BackupList({ label, lines }) {
    - busy: reading, then restoring;
    - decrypt (ModalWidth::L, its body scrolls: Qt catalog::ScrollArea, fit content): an
      encrypted backup lists each connected device, tried in turn with its xpubs at the
-     backup's paths (trying, locked, failed), or the empty state; Other options folds the
+     backup's paths (trying, locked, failed, or giving no scan key), or the empty state;
+     a backup naming a BIP352 scan path then lists the keys of Keys to ask for their scan
+     key, each on a click (offered, asking, failed); Other options folds the
      air-gap help, the paths, an xpub to paste or import, and the mnemonic behind its risk
      acknowledgement; Back only;
    - review (ModalWidth::M): what decrypted it, the account type and network, its Name (and
@@ -287,8 +318,8 @@ function BackupList({ label, lines }) {
      needs, its warnings; Back to the file;
    - restored.
    `kind`: 'sp' | 'musig' | 'descriptor' picks the fixture. `initial`: { view, file, error,
-   busy, devices, options, xpub, xpubNote, ack, mnemonic, mnemonicNote, opener, name,
-   restoreError } for the gallery. */
+   busy, devices, keys ({ fp: { status, error } }), options, xpub, xpubNote, ack, mnemonic,
+   mnemonicNote, opener, name, restoreError } for the gallery. */
 function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
   const info = BACKUP_INFO[kind];
   const [view, setView] = React.useState(initial.view || 'file');
@@ -304,7 +335,11 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
   const [name, setName] = React.useState(initial.name != null ? initial.name : info.account);
   const [network, setNetwork] = React.useState(RESTORE_NETWORKS[0]);
   const [live, setLive] = React.useState(false);   // the Decrypt view was reached by the flow
+  const [keyTries, setKeyTries] = React.useState(initial.keys || {});
   const devices = initial.devices || RESTORE_DEVICES;
+  const keys = restoreKeys(info.paths);
+  // only scan paths: no device and no xpub opens it (Qt: scanKeyOnly)
+  const scanKeyOnly = info.paths.length > 0 && info.paths.every(p => SCAN_PATH_RE.test(p));
   const error = initial.error || null;
   const restoreError = initial.restoreError || null;
   const run = (what, next) => {
@@ -313,11 +348,12 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
   };
   const clearKeys = () => {
     setXpub(''); setXpubNote(null); setAck(false); setMnemonic(''); setMnemonicNote(null); setOpener(null);
+    setKeyTries({});
   };
   const opened = (by) => { setOpener(by); setName(info.account); setView('review'); };
   // In the flow, the device being tried opens the backup after a moment.
   React.useEffect(() => {
-    if (view !== 'decrypt' || !live) return undefined;
+    if (view !== 'decrypt' || !live || scanKeyOnly) return undefined;
     const device = devices.find(d => d.state === 'ready' && d.tries === 'trying');
     if (!device) return undefined;
     const t = setTimeout(() => opened(`Decrypted with ${deviceName(device)} #${device.fp}`), 2400);
@@ -328,7 +364,14 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
     const v = value.trim();
     if (!v) { setXpubNote(null); return; }
     if (!XPUB_LIKE.test(v)) { setXpubNote('Invalid xpub'); return; }
+    if (scanKeyOnly) { setXpubNote('This backup opens with a silent payment scan key, which no xpub gives: ask one of your keys for it, or enter its mnemonic'); return; }
     opened('Decrypted with the xpub given');
+  };
+  // Asking a key runs its own flow (its QR exchange, its password; not drawn), then its scan
+  // key opens the backup.
+  const askKey = (k) => {
+    setKeyTries(t => ({ ...t, [k.fp]: { status: 'asking' } }));
+    setTimeout(() => opened(`Decrypted with ${k.alias || k.fp} #${k.fp}`), 1500);
   };
   const tryMnemonic = (value) => {
     setMnemonic(value);
@@ -349,16 +392,22 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
   }
   if (view === 'decrypt') {
     const order = { trying: 0, locked: 1, failed: 2 };
-    const sorted = [...devices].sort((a, b) =>
-      order[a.state === 'ready' ? a.tries : 'locked'] - order[b.state === 'ready' ? b.tries : 'locked']);
+    const group = (d) => d.state !== 'ready' ? 'locked' : scanKeyOnly ? 'failed' : d.tries;
+    const sorted = [...devices].sort((a, b) => order[group(a)] - order[group(b)]);
     return (
       <Modal title="Restore Account" width={600} onClose={onClose}>
         <Stack gap="m">
           <Text as="div" variant="body" color="secondary">Plug in and unlock a signing device belonging to this account to decrypt the backup.</Text>
           <Stack gap="s">
-            {sorted.length ? sorted.map(d => <RestoreDeviceRow key={d.id} device={d} />)
+            {sorted.length ? sorted.map(d => <RestoreDeviceRow key={d.id} device={d} scanKeyOnly={scanKeyOnly} />)
               : <EmptyState icon="usb" title="No Device Connected" subtitle="Plug in your signing device and unlock it." />}
           </Stack>
+          {keys.length ? <React.Fragment>
+            <Text as="div" variant="body" color="secondary">This backup opens with a silent payment scan key, which no connected device gives. Ask one of your keys for it:</Text>
+            <Stack gap="s">
+              {keys.map(k => <RestoreKeyRow key={k.fp} k={k} {...(keyTries[k.fp] || {})} onAsk={() => askKey(k)} />)}
+            </Stack>
+          </React.Fragment> : null}
           <FoldSection id="options" label="Other options" open={options} onToggle={() => setOptions(o => !o)}>
             <Stack gap="s">
               <Text as="div" variant="body" color="secondary">Using an air-gapped device? Export the xpub from your device, then paste it or import its file. If you do not know its derivation path, try the following:</Text>

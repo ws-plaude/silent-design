@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Silent — Launcher · components</title>
-<link rel="stylesheet" href="../styles.css?v=57" />
+<link rel="stylesheet" href="../styles.css?v=58" />
 <link rel="stylesheet" href="gallery.css" />
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -25,7 +25,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Signing.jsx?v=25"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/AddKey.jsx?v=28"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=68"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=69"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=66"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
@@ -41,7 +41,7 @@
     const noop = () => {};
     const F = (el, h = 480) => ({ frame: true, height: h, el: <div style={{ position: 'relative', height: '100%' }}>{el}</div> });
     const RA = (title, kind, initial, h = 440) => ({ title, tag: 'RestoreAccountModal', span: 'span2', ...F(<RestoreAccountModal kind={kind} initial={initial} onClose={noop} />, h) });
-    const FILE = (n) => `${n}-20261107.silent-backup`;
+    const FILE = (n) => `${n}-20261107.bip138`;
     Gallery.render({
       kicker: 'Launcher · components', title: 'Launcher (Menu tab)',
       lede: 'The wallet launcher: wordmark, a prominent “+ Create Account” action opening the Account Type picker, and the list of existing wallets (open / delete). Create and Delete open their modals — try them in the frame.',
@@ -51,14 +51,22 @@
           { title: 'Account Type: each creator, then its restore from a backup', tag: 'AccountType', span: 'span2', ...F(<AccountType types={ACCOUNT_TYPES} onCancel={noop} onPick={noop} />, 400) },
         ]},
         { name: 'Restore Account (from the Account Type picker)', items: [
-          RA('Password: no file chosen', 'sp', {}),
-          RA('Password: file chosen, no password', 'sp', { file: FILE('savings') }),
-          RA('Password: ready to read', 'sp', { file: FILE('savings'), pw: 'correct horse' }),
-          RA('Password: wrong password', 'sp', { file: FILE('savings'), error: 'Wrong password, or a damaged backup.' }, 480),
+          RA('File: no file chosen', 'sp', {}, 380),
+          RA('File: ready to read', 'sp', { file: FILE('savings') }, 380),
+          RA('File: not a backup Silent reads', 'sp', { file: 'notes.txt', error: 'This file is not a backup Silent reads: expected a BIP138 encrypted backup of a BIP139 wallet backup or of a descriptor, a BIP139 wallet backup or a descriptor.' }, 460),
+          RA('File: the file is not read', 'sp', { error: 'The file is not read: Permission denied' }, 420),
           RA('Busy: reading the backup', 'sp', { busy: 'reading' }, 380),
-          RA('Review: a silent payment backup', 'sp', { view: 'review' }, 640),
-          RA('Review: a Multikey backup, with its warning', 'musig', { view: 'review' }, 640),
-          RA('Review: the restore failed', 'musig', { view: 'review', restoreError: "An account named 'multikey' exists: delete it first" }, 700),
+          RA('Decrypt: devices trying, locked and failed', 'sp', { view: 'decrypt', file: FILE('savings') }, 560),
+          RA('Decrypt: a locked device with no state detail', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [{ id: 'hid-0006', brand: 'Blockstream', model: 'Jade', fp: null, state: 'locked' }] }, 440),
+          RA('Decrypt: no device connected', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [] }, 480),
+          RA('Decrypt: other options, invalid xpub', 'sp', { view: 'decrypt', file: FILE('savings'), options: true, xpub: 'tpubnotanxpub', xpubNote: 'Invalid xpub' }, 900),
+          RA('Decrypt: other options, an xpub that cannot decrypt it', 'musig', { view: 'decrypt', file: FILE('multikey'), devices: [], options: true, xpub: DEMO_XPUB_T, xpubNote: 'Xpub is valid but cannot decrypt this file' }, 900),
+          RA('Decrypt: other options, the risk acknowledged, a mnemonic that cannot decrypt it', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, ack: true, mnemonic: 'abandon ability able about above absent absorb abstract absurd abuse access account', mnemonicNote: 'Mnemonic is valid but cannot decrypt the file' }, 860),
+          RA('Decrypt: other options, an invalid mnemonic', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, ack: true, mnemonic: 'abandon ability able about above absent absorb abstract absurd abuse access hello', mnemonicNote: 'Invalid mnemonic' }, 860),
+          RA('Review: a silent payment backup, decrypted with a device', 'sp', { view: 'review', opener: 'Decrypted with Ledger Nano S Plus #73c5da0a' }, 700),
+          RA('Review: a Multikey backup, decrypted with an xpub, with its warning', 'musig', { view: 'review', opener: 'Decrypted with the xpub given' }, 720),
+          RA('Review: a plain descriptor, its network unsaid, no name yet', 'descriptor', { view: 'review' }, 760),
+          RA('Review: decrypted with the mnemonic, the restore failed', 'musig', { view: 'review', opener: 'Decrypted with the mnemonic given', restoreError: "An account named 'multikey' exists: delete it first" }, 780),
           RA('Busy: restoring the account', 'musig', { busy: 'restoring' }, 380),
           RA('Restored', 'sp', { view: 'restored' }, 300),
         ]},

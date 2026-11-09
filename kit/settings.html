@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Silent — Settings · components</title>
-<link rel="stylesheet" href="../styles.css?v=57" />
+<link rel="stylesheet" href="../styles.css?v=58" />
 <link rel="stylesheet" href="gallery.css" />
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -23,7 +23,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/TxFlow.jsx?v=6"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=57"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=68"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=69"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
     const W = WALLETS[KNOWN_WALLETS[0]] || Object.values(WALLETS)[0];
     const noop = () => {};
@@ -56,13 +56,12 @@
           { title: 'Electrum Disconnected: the reconnect gave up after more than 3 drops in a minute', tag: 'ElectrumGaveUpModal', span: 'span2', frame: true, height: 380, el: <div style={{ position: 'relative', height: '100%' }}><ElectrumGaveUpModal onClose={() => {}} /></div> },
         ]},
         { name: 'Backup Account (from the Backup section)', items: [
-          BA('Password: none yet', {}),
-          BA('Password: too short', { pw: 'short' }),
-          BA('Password: no match', { pw: 'correct horse', confirm: 'correct' }),
-          BA('Password: ready to save', { pw: 'correct horse', confirm: 'correct horse' }),
-          BA('Password: the file could not be written', { pw: 'correct horse', confirm: 'correct horse', error: 'The backup is not saved: Permission denied' }, 480),
-          BA('Busy: sealing the backup', { view: 'busy' }, 380),
+          BA('Save', {}, 380),
+          BA('Save: the file could not be written', { error: 'The backup is not saved: Permission denied' }, 440),
+          BA('Save: the backup could not be made', { error: 'The backup could not be made: the account is closing' }, 440),
+          BA('Busy: encrypting the backup', { view: 'busy' }, 380),
           BA('Saved', { view: 'saved' }, 300),
+          BA('Saved: keys the backup is not encrypted to', { view: 'saved', excluded: BACKUP_EXCLUDED }, 400),
         ]},
         { name: 'Building blocks', items: [
           ...[['empty', 'Empty'], [null, 'Untested'], ['testing', 'Testing'], ['ok', 'Successful'], ['failed', 'Failed']].map(([state, title]) => ({

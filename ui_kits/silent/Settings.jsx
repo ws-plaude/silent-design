@@ -125,34 +125,36 @@ function BackupSection({ onBackup }) {
   return (
     <Section label="Backup">
       <Stack gap="s">
-        <Text as="div" variant="body" color="secondary">Saves this account to a file sealed with a password: its descriptors, servers, address indexes and labels. The signing keys are not in it: they stay in Keys.</Text>
+        <Text as="div" variant="body" color="secondary">Saves this account to a file encrypted to its keys: its descriptors, servers, address indexes and labels. Any one of its keys opens it. The signing secrets are not in it: they stay in Keys.</Text>
         <Row justify="flex-end"><Btn id="backup_account" onClick={onBackup} /></Row>
       </Stack>
     </Section>
   );
 }
 
-const BACKUP_MIN_PASSWORD = 8;
-const backupFile = (account) => `${account}-20261107.silent-backup`;
+const backupFile = (account) => `${account}-20261107.bip138`;
 
-/* Backup Account (Qt: account::view::BackupAccount, ModalWidth::M), the state password
-   setup's recipe. Views: password (choose and confirm the password that seals it), busy
-   (sealing; then the system save dialog, not drawn), saved. `initial`: { view, pw, confirm,
-   error } for the gallery. */
+/* The key expressions a backup is not encrypted to (Qt: the excluded list of
+   IAccountBackend::backupCreated): literal keys, which BIP138 cannot encrypt to. */
+const BACKUP_EXCLUDED = ['[28645006]02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5'];
+
+/* Backup Account (Qt: account::view::BackupAccount, ModalWidth::M). Views: save (what the
+   BIP138(BIP139) backup is, Save Backup), busy (encrypting; then the system save dialog, not
+   drawn), saved (where it is saved, and a warning naming the keys it is not encrypted to).
+   `initial`: { view, error, excluded } for the gallery. */
 function BackupAccountModal({ account = 'savings', initial = {}, onClose }) {
-  const [view, setView] = React.useState(initial.view || 'password');
-  const [pw, setPw] = React.useState(initial.pw || '');
-  const [confirm, setConfirm] = React.useState(initial.confirm || '');
+  const [view, setView] = React.useState(initial.view || 'save');
+  const excluded = initial.excluded || [];
   const error = initial.error || null;
-  const seal = () => {
-    setPw(''); setConfirm(''); setView('busy');
+  const encrypt = () => {
+    setView('busy');
     setTimeout(() => setView('saved'), 900);
   };
 
   if (view === 'busy') {
     return (
       <Modal title="Backup Account" width={560} onClose={onClose}>
-        <ModalStatus spinner pad="var(--space-l) 0" title="Sealing the backup" subtitle="This takes a few seconds." />
+        <ModalStatus spinner pad="var(--space-l) 0" title="Encrypting the backup" subtitle="This takes a moment." />
       </Modal>
     );
   }
@@ -161,28 +163,20 @@ function BackupAccountModal({ account = 'savings', initial = {}, onClose }) {
       <Modal title="Backup Account" width={560} onClose={onClose}>
         <Stack gap="m">
           <Notice tone="success">The backup is saved to /home/alice/{backupFile(account)}</Notice>
+          {/* BIP138 asks that the user knows which key cannot open the backup */}
+          {excluded.length ? <Notice tone="warning">The backup is not encrypted to these keys, so their holders cannot open it with them: {excluded.join(', ')}</Notice> : null}
           <ModalActions><Btn id="done" onClick={onClose} /></ModalActions>
         </Stack>
       </Modal>
     );
   }
-  const short = pw && pw.length < BACKUP_MIN_PASSWORD;
-  const mismatch = confirm && confirm !== pw;
-  const reason = !pw ? 'Choose a password.' : pw.length < BACKUP_MIN_PASSWORD ? 'Use at least 8 characters.'
-    : confirm !== pw ? 'The two passwords must match.' : null;
   return (
     <Modal title="Backup Account" width={560} onClose={onClose}>
       <Stack gap="m">
-        <Text as="div" variant="body" color="secondary">Choose the password that seals the backup. It is needed to restore the account: it is not saved anywhere.</Text>
-        <FieldGroup>
-          <Field label="Password:"><Input type="password" width={260} value={pw} onChange={e => setPw(e.target.value)} /></Field>
-          {short ? <FieldNote tone="error">Use at least 8 characters.</FieldNote> : null}
-          <Field label="Confirm:"><Input type="password" width={260} value={confirm} onChange={e => setConfirm(e.target.value)} /></Field>
-          {mismatch ? <FieldNote tone="error">The passwords do not match.</FieldNote> : null}
-        </FieldGroup>
+        <Text as="div" variant="body" color="secondary">The backup is a BIP139 wallet backup encrypted with BIP138 to the account's keys: any one of them opens it, from its signing device, its xpub or its mnemonic. It holds the account's descriptors, servers, address indexes and labels, no signing secret.</Text>
         {error ? <Notice tone="error">{error}</Notice> : null}
-        <ModalActions reason={reason}>
-          <Btn id="save_backup" disabled={!!reason} onClick={seal} />
+        <ModalActions>
+          <Btn id="save_backup" onClick={encrypt} />
         </ModalActions>
       </Stack>
     </Modal>
@@ -190,10 +184,13 @@ function BackupAccountModal({ account = 'savings', initial = {}, onClose }) {
 }
 
 /* What a read backup says (Qt: backend::BackupInfo, from the account backup's contents):
-   one fixture per account kind, the servers and keys of the Data.jsx accounts. */
+   one fixture per account kind, the servers and keys of the Data.jsx accounts. `paths`: the
+   derivation paths of the keys it is encrypted to (Qt: IAccountBackend::backupLocked), none
+   for a plain backup. `network` null: a descriptor whose test keys leave it unsaid. */
 const BACKUP_INFO = {
   sp: {
     account: 'savings', kind: 'Silent Payment Wallet', network: 'Signet',
+    paths: ["m/352'/1'/0'/0'/0"],
     includes: [
       "The silent payment descriptor, with its scan key: whoever opens the backup sees the account's payments",
       'Server: https://blindbit.silentpayments.dev',
@@ -210,6 +207,7 @@ const BACKUP_INFO = {
   },
   musig: {
     account: 'multikey', kind: 'Multikey Wallet', network: 'Regtest',
+    paths: ["m/87'/1'/0'", "m/48'/1'/0'/2'"],
     includes: [
       'The spending policy (descriptor)',
       'Server: minta.wizardsardine.com:60001',
@@ -222,7 +220,46 @@ const BACKUP_INFO = {
     ],
     warnings: ['Saved PSBTs and signing sessions are not in the backup: a transaction being signed is prepared again.'],
   },
+  descriptor: {
+    account: '', kind: 'Multikey Wallet', network: null,
+    paths: [],
+    includes: [
+      'The spending policy (descriptor)',
+      'Labels: 0',
+    ],
+    requirements: [
+      'The signing keys 73c5da0a, b8688df1, 28645006, in Keys: the backup holds no secret',
+      'Its coins and history are found again from the Electrum server',
+      'Servers: the backup names none, so the restored account uses the ones last used on its network. Change them in its Settings.',
+    ],
+    warnings: ['Saved PSBTs and signing sessions are not in the backup: a transaction being signed is prepared again.'],
+  },
 };
+
+/* The networks a backup that leaves its network unsaid can be of: only test keys do. */
+const RESTORE_NETWORKS = ['Signet', 'Testnet', 'Regtest'];
+
+/* The connected devices the Decrypt view tries (Qt: RestoreAccount::DeviceTry), Data.jsx
+   DEVICES with `tries`: 'trying' | 'failed' for a ready one; a locked one is not tried. */
+const RESTORE_DEVICES = [
+  { ...DEVICES[0], tries: 'trying' },
+  { ...DEVICES[3] },
+  { ...DEVICES[1], tries: 'failed' },
+];
+
+/* One device of the Decrypt view: its name, `#fingerprint` or its state detail, and how its
+   try goes (Qt: RestoreAccount::refreshDevices, a static SelectRow). */
+function RestoreDeviceRow({ device }) {
+  const ready = device.state === 'ready';
+  const note = !ready ? null : device.tries === 'failed' ? 'Failed to decrypt the file with this device'
+    : 'Trying to decrypt with this device…';
+  return (
+    <SelectRow icon="usb" title={deviceName(device)} chevron={false} note={note}
+      sub={ready ? `#${device.fp}` : device.detail || 'Please unlock or open the app on the device'} />
+  );
+}
+
+const XPUB_LIKE = /^[tx]pub[1-9A-HJ-NP-Za-km-z]{100,}$/;
 
 /* A Review list: a Section of bullet lines (Qt: RestoreAccount::reviewList). */
 function BackupList({ label, lines }) {
@@ -235,22 +272,71 @@ function BackupList({ label, lines }) {
   );
 }
 
-/* Restore Account (Qt: account::view::RestoreAccount, ModalWidth::M), opened from the
-   Account Type picker's Restore rows. Views: password (choose the backup file, then its
-   password), busy (reading, then restoring), review (what the backup holds, what restoring
-   needs, its warnings; Back to the password), restored. `kind`: 'sp' | 'musig' picks the
-   fixture. `initial`: { view, file, pw, error, restoreError } for the gallery. */
+/* Restore Account (Qt: account::view::RestoreAccount), opened from the Account Type picker's
+   Restore rows. Views, in order:
+   - file (ModalWidth::M): choose the backup file (a Silent backup, a BIP139 wallet backup or
+     a descriptor, encrypted with BIP138 or not; the system open dialog is not drawn);
+   - busy: reading, then restoring;
+   - decrypt (ModalWidth::L, its body scrolls: Qt catalog::ScrollArea, fit content): an
+     encrypted backup lists each connected device, tried in turn with its xpubs at the
+     backup's paths (trying, locked, failed), or the empty state; Other options folds the
+     air-gap help, the paths, an xpub to paste or import, and the mnemonic behind its risk
+     acknowledgement; Back only;
+   - review (ModalWidth::M): what decrypted it, the account type and network, its Name (and
+     its Network when the backup leaves it unsaid), what the backup holds, what restoring
+     needs, its warnings; Back to the file;
+   - restored.
+   `kind`: 'sp' | 'musig' | 'descriptor' picks the fixture. `initial`: { view, file, error,
+   busy, devices, options, xpub, xpubNote, ack, mnemonic, mnemonicNote, opener, name,
+   restoreError } for the gallery. */
 function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
   const info = BACKUP_INFO[kind];
-  const [view, setView] = React.useState(initial.view || 'password');
+  const [view, setView] = React.useState(initial.view || 'file');
   const [file, setFile] = React.useState(initial.file || null);
-  const [pw, setPw] = React.useState(initial.pw || '');
   const [busy, setBusy] = React.useState(initial.busy || null);   // null | 'reading' | 'restoring'
+  const [options, setOptions] = React.useState(!!initial.options);
+  const [xpub, setXpub] = React.useState(initial.xpub || '');
+  const [xpubNote, setXpubNote] = React.useState(initial.xpubNote || null);
+  const [ack, setAck] = React.useState(!!initial.ack);
+  const [mnemonic, setMnemonic] = React.useState(initial.mnemonic || '');
+  const [mnemonicNote, setMnemonicNote] = React.useState(initial.mnemonicNote || null);
+  const [opener, setOpener] = React.useState(initial.opener || null);
+  const [name, setName] = React.useState(initial.name != null ? initial.name : info.account);
+  const [network, setNetwork] = React.useState(RESTORE_NETWORKS[0]);
+  const [live, setLive] = React.useState(false);   // the Decrypt view was reached by the flow
+  const devices = initial.devices || RESTORE_DEVICES;
   const error = initial.error || null;
   const restoreError = initial.restoreError || null;
   const run = (what, next) => {
     setBusy(what);
     setTimeout(() => { setBusy(null); setView(next); }, 900);
+  };
+  const clearKeys = () => {
+    setXpub(''); setXpubNote(null); setAck(false); setMnemonic(''); setMnemonicNote(null); setOpener(null);
+  };
+  const opened = (by) => { setOpener(by); setName(info.account); setView('review'); };
+  // In the flow, the device being tried opens the backup after a moment.
+  React.useEffect(() => {
+    if (view !== 'decrypt' || !live) return undefined;
+    const device = devices.find(d => d.state === 'ready' && d.tries === 'trying');
+    if (!device) return undefined;
+    const t = setTimeout(() => opened(`Decrypted with ${deviceName(device)} #${device.fp}`), 2400);
+    return () => clearTimeout(t);
+  }, [view, live]);
+  const tryXpub = (value) => {
+    setXpub(value);
+    const v = value.trim();
+    if (!v) { setXpubNote(null); return; }
+    if (!XPUB_LIKE.test(v)) { setXpubNote('Invalid xpub'); return; }
+    opened('Decrypted with the xpub given');
+  };
+  const tryMnemonic = (value) => {
+    setMnemonic(value);
+    const words = value.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) { setMnemonicNote(null); return; }
+    if (words.length < 12) { setMnemonicNote(null); return; }
+    if ((words.length !== 12 && words.length !== 24) || !words.every(isBip39)) { setMnemonicNote('Invalid mnemonic'); return; }
+    opened('Decrypted with the mnemonic given');
   };
 
   if (busy) {
@@ -261,17 +347,68 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
       </Modal>
     );
   }
+  if (view === 'decrypt') {
+    const order = { trying: 0, locked: 1, failed: 2 };
+    const sorted = [...devices].sort((a, b) =>
+      order[a.state === 'ready' ? a.tries : 'locked'] - order[b.state === 'ready' ? b.tries : 'locked']);
+    return (
+      <Modal title="Restore Account" width={600} onClose={onClose}>
+        <Stack gap="m">
+          <Text as="div" variant="body" color="secondary">Plug in and unlock a signing device belonging to this account to decrypt the backup.</Text>
+          <Stack gap="s">
+            {sorted.length ? sorted.map(d => <RestoreDeviceRow key={d.id} device={d} />)
+              : <EmptyState icon="usb" title="No Device Connected" subtitle="Plug in your signing device and unlock it." />}
+          </Stack>
+          <FoldSection id="options" label="Other options" open={options} onToggle={() => setOptions(o => !o)}>
+            <Stack gap="s">
+              <Text as="div" variant="body" color="secondary">Using an air-gapped device? Export the xpub from your device, then paste it or import its file. If you do not know its derivation path, try the following:</Text>
+              <Stack gap={2}>
+                {info.paths.map(p => <Text key={p} as="div" variant="mono">{p}</Text>)}
+              </Stack>
+              <FieldGroup>
+                <Field label="Xpub:">
+                  <ValidatedInput mono state={xpubNote ? 'invalid' : 'none'} value={xpub}
+                    onChange={e => tryXpub(e.target.value)} wrapStyle={{ flex: 1, minWidth: 0 }} />
+                  <Btn id="paste_from_clipboard" onClick={() => tryXpub(DEMO_XPUB_T)} />
+                </Field>
+                {xpubNote ? <FieldNote tone="error">{xpubNote}</FieldNote> : null}
+                {/* the system open dialog is not drawn: Choose File reads the fixture's xpub */}
+                <Field label="Xpub file:"><Btn id="choose_file" onClick={() => tryXpub(DEMO_XPUB_T)} /></Field>
+              </FieldGroup>
+              <Notice tone="warning">UNSAFE: this option is not secure. Entering a mnemonic on a computer may result in theft of the funds.</Notice>
+              <Checkbox checked={ack} label="I understand the risk"
+                onChange={on => { setAck(on); if (!on) { setMnemonic(''); setMnemonicNote(null); } }} />
+              <FieldGroup>
+                <Field label="Mnemonic:">
+                  <ValidatedInput state={mnemonicNote ? 'invalid' : 'none'} value={mnemonic} disabled={!ack}
+                    onChange={e => tryMnemonic(e.target.value)} wrapStyle={{ flex: 1, minWidth: 0 }} />
+                </Field>
+                {mnemonicNote ? <FieldNote tone="error">{mnemonicNote}</FieldNote> : null}
+              </FieldGroup>
+            </Stack>
+          </FoldSection>
+          <ModalActions onBack={() => { clearKeys(); setLive(false); setView('file'); }} />
+        </Stack>
+      </Modal>
+    );
+  }
   if (view === 'review') {
+    const named = !!name.trim();
     return (
       <Modal title="Restore Account" width={560} onClose={onClose}>
         <Stack gap="m">
-          <Text as="div" variant="body">{info.account} · {info.kind} · {info.network}</Text>
+          {opener ? <Notice tone="success">{opener}</Notice> : null}
+          <Text as="div" variant="body">{info.network ? `${info.kind} · ${info.network}` : info.kind}</Text>
+          <FieldGroup>
+            <Field label="Name:"><Input width="var(--w-l)" value={name} onChange={e => setName(e.target.value)} /></Field>
+            {info.network ? null : <Field label="Network:"><ComboBox value={network} options={RESTORE_NETWORKS} onChange={setNetwork} width="var(--w-l)" /></Field>}
+          </FieldGroup>
           <BackupList label="In the Backup" lines={info.includes} />
           <BackupList label="Restoring Needs" lines={info.requirements} />
           {info.warnings.map(w => <Notice key={w} tone="warning">{w}</Notice>)}
           {restoreError ? <Notice tone="error">The account is not restored: {restoreError}</Notice> : null}
-          <ModalActions onBack={() => { setPw(''); setView('password'); }}>
-            <Btn id="restore_account" onClick={() => run('restoring', 'restored')} />
+          <ModalActions onBack={() => { clearKeys(); setLive(false); setView('file'); }} reason={named ? null : 'Name the account.'}>
+            <Btn id="restore_account" disabled={!named} onClick={() => run('restoring', 'restored')} />
           </ModalActions>
         </Stack>
       </Modal>
@@ -281,30 +418,34 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
     return (
       <Modal title="Restore Account" width={560} onClose={onClose}>
         <Stack gap="m">
-          <Notice tone="success">{info.account} is restored. Open it from the account list.</Notice>
+          <Notice tone="success">{name || info.account} is restored. Open it from the account list.</Notice>
           <ModalActions><Btn id="done" onClick={onClose} /></ModalActions>
         </Stack>
       </Modal>
     );
   }
-  const reason = !file ? 'Choose the backup file.' : !pw ? "Enter the backup's password." : null;
+  const reason = !file ? 'Choose the backup file.' : null;
+  const read = () => {
+    // an encrypted backup asks for a key, a plain one goes to the review
+    if (info.paths.length) { setLive(true); run('reading', 'decrypt'); } else run('reading', 'review');
+  };
   return (
     <Modal title="Restore Account" width={560} onClose={onClose}>
       <Stack gap="m">
-        <Text as="div" variant="body" color="secondary">Choose the account's backup file and enter the password it was sealed with.</Text>
+        <Text as="div" variant="body" color="secondary">Choose the account's backup file: a Silent backup, a BIP139 wallet backup or a descriptor, encrypted with BIP138 or not.</Text>
         <FieldGroup>
-          {/* the system open dialog is not drawn: Choose File picks the fixture's file */}
+          {/* the system open dialog (Backups (*.bip138 *.json *.txt), All files (*)) is not
+              drawn: Choose File picks the fixture's file */}
           <Field label="Backup:">
             <Row gap="s">
               <Stack style={{ flex: 1, minWidth: 0 }}><Text variant="body" color="secondary">{file || 'No file chosen'}</Text></Stack>
-              <Btn id="choose_file" onClick={() => setFile(backupFile(info.account))} />
+              <Btn id="choose_file" onClick={() => setFile(kind === 'descriptor' ? 'multikey-descriptor.txt' : backupFile(info.account))} />
             </Row>
           </Field>
-          <Field label="Password:"><Input type="password" width={260} value={pw} onChange={e => setPw(e.target.value)} /></Field>
         </FieldGroup>
         {error ? <Notice tone="error">{error}</Notice> : null}
         <ModalActions reason={reason}>
-          <Btn id="read_backup" disabled={!!reason} onClick={() => { setPw(''); run('reading', 'review'); }} />
+          <Btn id="read_backup" disabled={!!reason} onClick={read} />
         </ModalActions>
       </Stack>
     </Modal>
@@ -323,4 +464,4 @@ function ElectrumGaveUpModal({ server = 'minta.wizardsardine.com:60001', drops =
   );
 }
 
-Object.assign(window, { SettingsScreen, MusigSettingsScreen, ServerRow, ElectrumGaveUpModal, BackupSection, BackupAccountModal, RestoreAccountModal });
+Object.assign(window, { SettingsScreen, MusigSettingsScreen, ServerRow, ElectrumGaveUpModal, BackupSection, BackupAccountModal, BACKUP_EXCLUDED, RestoreAccountModal });

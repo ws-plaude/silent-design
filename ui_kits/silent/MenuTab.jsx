@@ -1,14 +1,14 @@
 /* Silent UI Kit: Menu tab (MenuTab.cpp) + AccountType / CreateAccount / ConfirmDelete
    modals. One create button opens AccountType (AccountType.cpp), which lists the
-   creators: the silent payment wallet (CreateAccount) and its restore from a backup
-   (RestoreAccountModal, Settings.jsx), the shared MuSig2 wallet (CreateSharedAccount,
-   Musig.jsx) and its restore, then those of the enabled plugins. */
+   account types: the silent payment wallet and the shared MuSig2 wallet, then those of
+   the enabled plugins. Picking a type with a restore offers Create (CreateAccount, or
+   CreateSharedAccount in Musig.jsx) or Restore from a backup (RestoreAccountModal,
+   Settings.jsx); a type with a create entry only starts it at once. */
 
+/* restore: the RestoreAccountModal kind, none for a type that only creates. */
 const ACCOUNT_TYPES = [
-  { id: 'sp', title: 'Silent Payment Wallet', icon: 'silent' },
-  { id: 'sp_restore', title: 'Restore Silent Payment Wallet', icon: 'silent' },
-  { id: 'shared', title: 'Multikey Wallet', icon: 'users' },
-  { id: 'shared_restore', title: 'Restore Multikey Wallet', icon: 'users' },
+  { id: 'sp', title: 'Silent Payment Wallet', icon: 'silent', restore: 'sp' },
+  { id: 'shared', title: 'Multikey Wallet', icon: 'users', restore: 'musig' },
 ];
 
 /* musigSim / musigSimKey: the kit simulator's keys + cached xpubs for the wizard (dev only). */
@@ -40,12 +40,12 @@ function MenuTab({ wallets, openWallets, onOpen, onCreate, onDelete, onOpenKeys,
 
       {/* The picker closes before the creator opens: modals never stack. */}
       {picking ? <AccountType types={ACCOUNT_TYPES} onCancel={() => setPicking(false)}
-        onPick={(id) => {
+        onCreate={(id) => {
           setPicking(false);
           if (id === 'sp') setCreating(true);
           else if (id === 'shared') setSharing(true);
-          else setRestoring(id === 'sp_restore' ? 'sp' : 'musig');
-        }} /> : null}
+        }}
+        onRestore={(kind) => { setPicking(false); setRestoring(kind); }} /> : null}
 
       {creating ? <CreateAccount existing={wallets} onOpenKeys={onOpenKeys ? () => { setCreating(false); onOpenKeys(); } : null} onCancel={() => setCreating(false)}
         onCreate={(name) => { onCreate(name); setCreating(false); }} /> : null}
@@ -183,12 +183,27 @@ function CreateAccount({ existing, keys = window.KEYS, onCancel, onCreate, onOpe
   );
 }
 
-function AccountType({ types, onCancel, onPick }) {
+/* Views: types, then the Create / Restore choice of a type that has a restore.
+   initial.type opens the choice of that type (kit states). */
+function AccountType({ types, onCancel, onCreate, onRestore, initial = {} }) {
+  const [picked, setPicked] = React.useState(types.find(t => t.id === initial.type) || null);
+  if (picked) {
+    return (
+      <Modal title={`Account Type · ${picked.title}`} width={520} onClose={onCancel}>
+        <Stack gap="s" style={{ alignSelf: 'stretch' }}>
+          <SelectRow icon="plus" title="Create" sub="Make a new account from your keys." onClick={() => onCreate(picked.id)} />
+          <SelectRow icon="folder" title="Restore" sub="Bring back an account from its backup file." onClick={() => onRestore(picked.restore)} />
+          <ModalActions onBack={() => setPicked(null)} />
+        </Stack>
+      </Modal>
+    );
+  }
   return (
     <Modal title="Account Type" width={520} onClose={onCancel}>
       {/* The rows span the modal (Qt: setWideBody). */}
       <Stack gap="s" style={{ alignSelf: 'stretch' }}>
-        {types.map(t => <SelectRow key={t.id} twoLine icon={t.icon || 'puzzle'} title={t.title} onClick={() => onPick(t.id)} />)}
+        {types.map(t => <SelectRow key={t.id} twoLine icon={t.icon || 'puzzle'} title={t.title}
+          onClick={() => t.restore ? setPicked(t) : onCreate(t.id)} />)}
       </Stack>
     </Modal>
   );

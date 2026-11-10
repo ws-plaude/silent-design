@@ -50,11 +50,53 @@ function ServerRow({ label, initial, placeholder, height, connectId, disconnectI
   );
 }
 
+/* The plugins offering themselves as a blockchain backend, by their plugin name (Qt:
+   PluginRegistry::blockchainBackends()). */
+const BLOCKCHAIN_BACKENDS = [{ id: 'bitcoind', name: 'Bitcoin Core (bitcoind)' }];
+const BACKEND_ELECTRUM = 'Electrum (built-in)';
+const SETTINGS_PICKER_WIDTH = 160;   /* Qt: metric::SETTINGS_PICKER_WIDTH */
+
+/* A Multikey account's backend is missing when it names a module no plugin installs. */
+const backendMissing = (id, installed = BLOCKCHAIN_BACKENDS) => !!id && !installed.some(b => b.id === id);
+
+/* Blockchain backend (musig SettingsExtras::initBackend): where the account reads the
+   blockchain. The picker lists Electrum (built-in), then each plugin offering itself, and a
+   chosen module that is not installed by its raw id; it is disabled while a choice saves
+   (a saved choice rebuilds Settings over the new services). The error line under it: the
+   missing backend, or why a choice was refused or not saved. `backend`: { chosen (a module
+   id, '' for Electrum), installed, error, saving } for the gallery. */
+function BlockchainBackendSection({ backend = {} }) {
+  const installed = backend.installed || BLOCKCHAIN_BACKENDS;
+  const [chosen, setChosen] = React.useState(backend.chosen || '');
+  const [saving, setSaving] = React.useState(!!backend.saving);
+  const [error, setError] = React.useState(backend.error != null ? backend.error
+    : backendMissing(backend.chosen, installed) ? `The blockchain backend ${backend.chosen} is not installed. Install it, or choose another backend.` : null);
+  const entries = [{ id: '', name: BACKEND_ELECTRUM }, ...installed.map(b => ({ id: b.id, name: b.name }))];
+  if (!entries.some(e => e.id === chosen)) entries.push({ id: chosen, name: chosen });
+  const label = (entries.find(e => e.id === chosen) || entries[0]).name;
+  const pick = (name) => {
+    const entry = entries.find(e => e.name === name);
+    if (!entry || entry.id === chosen) return;
+    setSaving(true); setError(null);
+    setTimeout(() => { setSaving(false); setChosen(entry.id); }, 900);
+  };
+  return (
+    <Section label="Blockchain backend">
+      <Stack gap="s">
+        <Text as="div" variant="body" color="secondary">Where this account reads the blockchain: the built-in Electrum server, or a plugin watching its descriptors.</Text>
+        <Row><ComboBox value={label} options={entries.map(e => e.name)} onChange={pick} minWidth={SETTINGS_PICKER_WIDTH} disabled={saving} /></Row>
+        {error ? <Text as="div" variant="body" color="error">{error}</Text> : null}
+      </Stack>
+    </Section>
+  );
+}
+
 /* A Multikey Wallet's Settings (core Settings.cpp + musig SettingsExtras.cpp): the
-   Electrum ServerRow, Policy (its spend paths; Register Descriptor on the cosigners'
-   devices under it), Descriptor (pretty, keys as aliases; copy for backup), then
-   Backup (BackupSection). */
-function MusigSettingsScreen({ wallet }) {
+   Electrum ServerRow, Blockchain backend (BlockchainBackendSection), Policy (its spend
+   paths; Register Descriptor on the cosigners' devices under it), Descriptor (pretty, keys
+   as aliases; copy for backup), then Backup (BackupSection). `backend`: the
+   BlockchainBackendSection fixture, else the wallet's `blockchainBackend`. */
+function MusigSettingsScreen({ wallet, backend }) {
   const [registering, setRegistering] = React.useState(false);
   const [backingUp, setBackingUp] = React.useState(false);
   React.useEffect(() => { setRegistering(false); setBackingUp(false); }, [wallet]);
@@ -63,6 +105,7 @@ function MusigSettingsScreen({ wallet }) {
       <Stack gap="l">
         <ServerRow label="Electrum Address" initial={wallet.electrum} placeholder="host:port (e.g. 127.0.0.1:50001)"
           height={wallet.electrumHeight} connectId="connect_electrum" disconnectId="disconnect_electrum" transport lockConnectedElectrum />
+        <BlockchainBackendSection key={wallet.name} backend={backend || { chosen: wallet.blockchainBackend || '' }} />
         <Section label="Policy">
           <Stack gap="s">
             <PolicyReview paths={wallet.paths || []} />
@@ -81,9 +124,9 @@ function MusigSettingsScreen({ wallet }) {
   );
 }
 
-function SettingsScreen({ wallet }) {
+function SettingsScreen({ wallet, backend }) {
   if (wallet.kind === 'musig') {
-    return <MusigSettingsScreen wallet={wallet} />;
+    return <MusigSettingsScreen wallet={wallet} backend={backend} />;
   }
   return <SpSettingsScreen wallet={wallet} />;
 }
@@ -533,4 +576,4 @@ function ElectrumGaveUpModal({ server = 'minta.wizardsardine.com:60001', drops =
   );
 }
 
-Object.assign(window, { SettingsScreen, MusigSettingsScreen, ServerRow, ElectrumGaveUpModal, BackupSection, BackupAccountModal, BACKUP_TEXTS, BACKUP_EXCLUDED, RestoreAccountModal });
+Object.assign(window, { SettingsScreen, MusigSettingsScreen, BlockchainBackendSection, BLOCKCHAIN_BACKENDS, backendMissing, ServerRow, ElectrumGaveUpModal, BackupSection, BackupAccountModal, BACKUP_TEXTS, BACKUP_EXCLUDED, RestoreAccountModal });

@@ -9,23 +9,30 @@ const SCREENS = {
   receive: ReceiveScreen, settings: SettingsScreen, layout: LayoutDoc,
 };
 
+/* A Multikey account whose blockchain backend is not installed opens on Settings, which
+   names it; History, Coins, Send, Receive and PSBT are not built, their menu entries stay
+   (Qt: MusigAccountController::loadPanels). */
 function AccountView({ wallet, screen, onScreen, appWidth }) {
   const [records, setRecords] = React.useState(SAVED_PSBTS);
   const [resume, setResume] = React.useState(null);
   const [restoreCount, setRestoreCount] = React.useState(0);
+  const missing = wallet.kind === 'musig' && backendMissing(wallet.blockchainBackend);
+  React.useEffect(() => { if (missing && screen !== 'settings') onScreen('settings'); }, [missing]);
+  const select = (s) => { if (!missing || s === 'settings') onScreen(s); };
   // Send is kept mounted (hidden when inactive) so its draft state survives navigation.
   const isSend = screen === 'send';
-  const OtherComp = !isSend && screen !== 'psbt' ? (SCREENS[screen] || HistoryScreen) : null;
+  const OtherComp = missing ? (screen === 'settings' ? SettingsScreen : null)
+    : !isSend && screen !== 'psbt' ? (SCREENS[screen] || HistoryScreen) : null;
   return (
     <Stack grow style={{ minHeight: 0 }}>
       <Row grow align="stretch" style={{ minHeight: 0 }}>
-        <Sidebar active={screen} onSelect={onScreen} musig={wallet.kind === 'musig'} />
+        <Sidebar active={screen} onSelect={select} musig={wallet.kind === 'musig'} />
         <Stack grow style={{ background: 'var(--bg)' }}>
-          <Stack grow style={{ display: isSend ? 'flex' : 'none', minHeight: 0 }}>
+          {missing ? null : <Stack grow style={{ display: isSend ? 'flex' : 'none', minHeight: 0 }}>
             <SendScreen key={wallet.name + restoreCount} wallet={wallet} initial={resume || {}}
               onProgress={patch => setRecords(rows => rows.map(r => resume && r.id === resume.id ? { ...r, ...patch, edited: new Date().toISOString().slice(0, 16).replace('T', ' ') } : r))} />
-          </Stack>
-          {screen === 'psbt' && wallet.kind === 'musig' ? <SavedPsbts records={records} onChange={setRecords} compact={appWidth < 1040} tip={parseInt(wallet.electrumHeight, 10) || 0}
+          </Stack>}
+          {screen === 'psbt' && wallet.kind === 'musig' && !missing ? <SavedPsbts records={records} onChange={setRecords} compact={appWidth < 1040} tip={parseInt(wallet.electrumHeight, 10) || 0}
             onOpen={record => { setResume(record); setRestoreCount(n => n + 1); onScreen('send'); }} /> : null}
           {OtherComp ? <OtherComp wallet={wallet} compact={appWidth < 1040} /> : null}
         </Stack>
@@ -160,7 +167,7 @@ function App() {
               musigSim={simMusigProps(sim)} musigSimKey={sim.musigCached + '|' + sim.musigRoutes}
               onOpen={openWallet} onCreate={createWallet} onDelete={deleteWallet} />
           ) : (
-            <AccountView wallet={ensureWallet(active)} screen={screens[active] || 'history'} appWidth={fixedW || paneW}
+            <AccountView key={active + '|' + sim.musigBackend} wallet={simWallet(ensureWallet(active), sim)} screen={screens[active] || 'history'} appWidth={fixedW || paneW}
               onScreen={(s) => setScreens(prev => ({ ...prev, [active]: s }))} />
           )}
           <KitSimPanel t={sim} setTweak={setSim} />

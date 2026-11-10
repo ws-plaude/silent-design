@@ -255,8 +255,11 @@ export function Legend({ color, children }) {
    colour on the hover background. `disabled`: bgSecondary, textSecondary text and
    chevron, borderLight border (like a disabled Input), and it does not open.
    `disabledOptions`: entries listed muted (textMuted), with no hover, that a click
-   does not pick. */
-export function ComboBox({ value, options, onChange, width = 200, disabled = false, disabledOptions = [] }) {
+   does not pick. `minWidth` (fit to contents): in place of the fixed `width`, the box is
+   as wide as its longest option, never narrower than `minWidth` (Qt: setMinimumWidth +
+   QComboBox::AdjustToContents). */
+export function ComboBox({ value, options, onChange, width = 200, minWidth, disabled = false, disabledOptions = [] }) {
+  const fit = minWidth != null;
   const [open, setOpen] = React.useState(false);
   const [rect, setRect] = React.useState(null);
   const ref = React.useRef(null);
@@ -293,13 +296,19 @@ export function ComboBox({ value, options, onChange, width = 200, disabled = fal
       })}
     </div>, document.body) : null;
   return (
-    <div ref={ref} style={{ position: 'relative', width, flex: 'none' }}>
+    <div ref={ref} style={{ position: 'relative', width: fit ? undefined : width, minWidth: fit ? minWidth : undefined, flex: 'none' }}>
       <span className={`s-combo${disabled ? ' is-disabled' : ''}`} aria-disabled={disabled || undefined} style={{ width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', paddingRight: 26 }} onClick={toggle}>
         <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
         <span style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', zIndex: 1, color: disabled ? 'var(--text-secondary)' : 'var(--text)', display: 'inline-flex' }}>
           <Icon name="chevron_down" size={12} />
         </span>
       </span>
+      {/* fit: the options, hidden, set the width at the box's text inset */}
+      {fit ? <span aria-hidden="true" style={{ display: 'block', height: 0, overflow: 'hidden', visibility: 'hidden',
+        padding: '0 calc(var(--combo-dropdown-w) + var(--pad-s)) 0 10px', border: '0 solid transparent', borderLeftWidth: 1, borderRightWidth: 1,
+        fontSize: 'var(--size-body)', fontFamily: 'var(--font-sans)' }}>
+        {options.map(opt => <span key={opt} style={{ display: 'block', whiteSpace: 'nowrap' }}>{opt}</span>)}
+      </span> : null}
       {list}
     </div>
   );

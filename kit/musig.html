@@ -15,7 +15,7 @@
 </head>
 <body>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Icons.jsx?v=7"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Primitives.jsx?v=36"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Primitives.jsx?v=38"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Layout.jsx?v=5"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Widgets.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=50"></script>
@@ -29,7 +29,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/TxFlow.jsx?v=6"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=57"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=73"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=74"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=66"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/GlobalSettings.jsx?v=34"></script>
@@ -42,6 +42,20 @@
       const [wallets, setWallets] = React.useState(KNOWN_WALLETS);
       return <MenuTab wallets={wallets} openWallets={[]} onOpen={noop}
         onCreate={(n) => setWallets(w => w.includes(n) ? w : [...w, n])} onDelete={(n) => setWallets(w => w.filter(x => x !== n))} />;
+    }
+
+    /* The account shell over a backend not installed (App.jsx AccountView): only Settings is built. */
+    function MissingBackendDemo() {
+      const wallet = { ...WALLETS.multikey, electrum: '', blockchainBackend: 'bitcoind' };
+      return <Stack grow style={{ height: '100%', minHeight: 0 }}>
+        <Row grow align="stretch" style={{ minHeight: 0 }}>
+          <Sidebar musig active="settings" onSelect={noop} />
+          <Stack grow style={{ minWidth: 0, background: 'var(--bg)' }}>
+            <SettingsScreen wallet={wallet} backend={{ chosen: 'bitcoind', installed: [] }} />
+          </Stack>
+        </Row>
+        <StatusBar wallet={wallet} />
+      </Stack>;
     }
 
     function SavedPsbtDemo({ initial = {} }) {
@@ -101,7 +115,12 @@
           { title: 'Send: finalized, every signature in; Broadcast where Sign was opens the Sign modal at its Broadcast', tag: 'SendScreen', span: 'full', frame: true, height: 1300, el: <SendScreen wallet={WALLETS.multikey} initial={{ round: 'ready', finalized: true, payments: [{ address: 'bcrt1pfml94fqkjkwhlpeeychsxxwvwqkclmw02zv8y6nkmshcdsts6jjsl989et', amount: '0.005', label: '', max: false }] }} /> },
           { title: 'Send: prepared, Export PSBT… hands out the session\'s PSBT, its progress included', tag: 'ExportPsbtModal', span: 'full', frame: true, height: 1300, el: <div style={{ position: 'relative', height: '100%' }}><SendScreen wallet={WALLETS.multikey} initial={{ round: 2, payments: [{ address: 'bcrt1pfml94fqkjkwhlpeeychsxxwvwqkclmw02zv8y6nkmshcdsts6jjsl989et', amount: '0.005', label: '', max: false }], modal: { type: 'export' } }} /></div> },
           { title: 'Receive: the Taproot section only', tag: 'ReceiveScreen', span: 'full', frame: true, height: 460, el: <ReceiveScreen wallet={WALLETS.multikey} /> },
-          { title: 'Settings: Electrum, then the account\'s descriptor, cosigners, Register Descriptor and Delete', tag: 'MusigSettingsScreen', span: 'full', frame: true, height: 700, el: <SettingsScreen wallet={WALLETS.multikey} /> },
+          { title: 'Settings: Electrum, its Blockchain backend the built-in Electrum, then the account\'s policy, Register Descriptor, descriptor and Backup', tag: 'MusigSettingsScreen', span: 'full', frame: true, height: 760, el: <SettingsScreen wallet={WALLETS.multikey} /> },
+          { title: 'Settings: a plugin chosen as its Blockchain backend', tag: 'BlockchainBackendSection', span: 'full', frame: true, height: 420, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind' }} /> },
+          { title: 'Settings: a choice saving, the picker disabled', tag: 'BlockchainBackendSection', span: 'full', frame: true, height: 420, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: '', saving: true }} /> },
+          { title: 'Settings: the backend cannot change while the account signs, broadcasts or changes its server', tag: 'BlockchainBackendSection', span: 'full', frame: true, height: 440, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: '', error: 'The blockchain backend cannot change while the account signs, broadcasts or changes its server.' }} /> },
+          { title: 'Settings: the choice could not be saved', tag: 'BlockchainBackendSection', span: 'full', frame: true, height: 440, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind', error: 'Could not save the blockchain backend' }} /> },
+          { title: 'Missing backend: the account opens on Settings, which names the module not installed by its id; History, Coins, Send, Receive and PSBT are not built, their menu entries stay', tag: 'MusigSettingsScreen', span: 'full', frame: true, height: 700, el: <MissingBackendDemo /> },
           { title: 'Register Descriptor: on open, Alice\'s USB device being checked, the QR keys not registered, the hot key not needed', tag: 'RegisterDescriptorModal', span: 'span2', ...F(<RegisterDescriptorModal onClose={noop} initial={{ states: { '28645006': 'pending', '73c5da0a': 'checking', 'b8688df1': 'pending', '3f635a63': 'not_needed' } }} />, 560) },
           { title: 'Register Descriptor: Carol and Bob registering at once, Alice\'s device not connected', tag: 'RegisterDescriptorModal', span: 'span2', ...F(<RegisterDescriptorModal onClose={noop} initial={{ states: { '28645006': 'registering', '73c5da0a': 'disconnected', 'b8688df1': 'registering', '3f635a63': 'not_needed' } }} />, 560) },
           { title: 'Register Descriptor: Carol registered, Bob failed with why, a click tries again', tag: 'RegisterDescriptorModal', span: 'span2', ...F(<RegisterDescriptorModal onClose={noop} initial={{ states: { '28645006': 'registered', '73c5da0a': 'registered', 'b8688df1': 'failed', '3f635a63': 'not_needed' }, failed: { 'b8688df1': 'The device did not register this account.' } }} />, 560) },

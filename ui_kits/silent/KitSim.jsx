@@ -8,7 +8,8 @@ const SIM_DEFAULTS = /*EDITMODE-BEGIN*/{
   "keysKeys": "all",
   "keysRegistering": false,
   "musigCached": "some",
-  "musigRoutes": "mixed"
+  "musigRoutes": "mixed",
+  "musigBackend": "electrum"
 }/*EDITMODE-END*/;
 
 const SIM_DEVICE_SETS = {
@@ -50,6 +51,18 @@ function simMusigProps(t) {
   return { keys, initial: { fetched: c === 'all' ? keys.map(k => k.fp) : c } };
 }
 
+/* A Multikey account's blockchain backend: Electrum, a plugin installed, or a plugin no
+   longer installed (the account opens on Settings, its fund panels not built). */
+const SIM_MUSIG_BACKENDS = {
+  electrum: { label: 'Electrum (built-in)', id: '' },
+  plugin: { label: 'Bitcoin Core plugin', id: 'bitcoind' },
+  missing: { label: 'A plugin not installed', id: 'electrs' },
+};
+function simWallet(wallet, t) {
+  if (wallet.kind !== 'musig') return wallet;
+  return { ...wallet, blockchainBackend: (SIM_MUSIG_BACKENDS[t.musigBackend] || SIM_MUSIG_BACKENDS.electrum).id };
+}
+
 const simHex = (i) => ((0x1a2b3c4d + i * 0x9e3779b1) >>> 0).toString(16).padStart(8, '0').slice(0, 8);
 
 function simKeysProps(t) {
@@ -87,8 +100,10 @@ function KitSimPanel({ t, setTweak }) {
       <TweakSection label="Multikey wizard · Xpubs" />
       <TweakSelect label="Xpubs already held" value={t.musigCached} options={opt(SIM_MUSIG_CACHED)} onChange={v => setTweak('musigCached', v)} />
       <TweakSelect label="Key routes" value={t.musigRoutes} options={opt(SIM_MUSIG_ROUTES)} onChange={v => setTweak('musigRoutes', v)} />
+      <TweakSection label="Multikey account" />
+      <TweakSelect label="Blockchain backend" value={t.musigBackend} options={opt(SIM_MUSIG_BACKENDS)} onChange={v => setTweak('musigBackend', v)} />
     </TweaksPanel>
   );
 }
 
-Object.assign(window, { SIM_DEFAULTS, simKeysProps, simMusigProps, KitSimPanel });
+Object.assign(window, { SIM_DEFAULTS, simKeysProps, simMusigProps, simWallet, KitSimPanel });

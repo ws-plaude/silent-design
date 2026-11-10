@@ -23,12 +23,13 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/TxFlow.jsx?v=6"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=57"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=71"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=72"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
     const W = WALLETS[KNOWN_WALLETS[0]] || Object.values(WALLETS)[0];
     const noop = () => {};
     const F = (el, h = 480) => ({ frame: true, height: h, el: <div style={{ position: 'relative', height: '100%' }}>{el}</div> });
-    const BA = (title, initial, h = 440) => ({ title, tag: 'BackupAccountModal', span: 'span2', ...F(<BackupAccountModal account={W.name} initial={initial} onClose={noop} />, h) });
+    const BA = (title, initial, h = 440, kind = 'sp', account = W.name) => ({ title, tag: 'BackupAccountModal', span: 'span2', ...F(<BackupAccountModal kind={kind} account={account} initial={initial} onClose={noop} />, h) });
+    const BS = (title, kind) => ({ title, tag: 'BackupSection', span: 'span2', el: <div style={{ padding: 4 }}><BackupSection kind={kind} onBackup={noop} /></div> });
 
     function EndpointRowDemo({ state, labelAbove = false }) {
       const [value, setValue] = React.useState(state === 'empty' ? '' : W.blindbit);
@@ -56,7 +57,10 @@
           { title: 'Electrum Disconnected: the reconnect gave up after more than 3 drops in a minute', tag: 'ElectrumGaveUpModal', span: 'span2', frame: true, height: 380, el: <div style={{ position: 'relative', height: '100%' }}><ElectrumGaveUpModal onClose={() => {}} /></div> },
         ]},
         { name: 'Backup Account (from the Backup section)', items: [
-          BA('Save', {}, 380),
+          BS('Backup section: a silent payment account', 'sp'),
+          BS('Backup section: a Multikey account', 'multikey'),
+          BA('Save: a silent payment account', {}, 420),
+          BA('Save: a Multikey account', {}, 420, 'multikey', 'multikey'),
           BA('Save: the file could not be written', { error: 'The backup is not saved: Permission denied' }, 440),
           BA('Save: the backup could not be made', { error: 'The backup could not be made: the account is closing' }, 440),
           BA('Busy: encrypting the backup', { view: 'busy' }, 380),

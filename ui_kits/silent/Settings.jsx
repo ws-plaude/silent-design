@@ -73,10 +73,10 @@ function MusigSettingsScreen({ wallet }) {
           <DescriptorView value={wallet.descriptor}
             aliases={Object.fromEntries(musigSigners(wallet.cosigners.split(', ')).map(s => [s.fp, s.alias]))} />
         </Section>
-        <BackupSection onBackup={() => setBackingUp(true)} />
+        <BackupSection kind="multikey" onBackup={() => setBackingUp(true)} />
       </Stack>
       {registering && window.RegisterDescriptorModal ? <RegisterDescriptorModal onClose={() => setRegistering(false)} /> : null}
-      {backingUp ? <BackupAccountModal account={wallet.name} onClose={() => setBackingUp(false)} /> : null}
+      {backingUp ? <BackupAccountModal kind="multikey" account={wallet.name} onClose={() => setBackingUp(false)} /> : null}
     </ScreenWrap>
   );
 }
@@ -112,20 +112,35 @@ function SpSettingsScreen({ wallet }) {
           </Stack>
           <ServerRow label="Electrum Address" initial={wallet.electrum} placeholder="host:port"
             height={wallet.electrumHeight} connectId="connect_electrum" disconnectId="disconnect_electrum" transport />
-          <BackupSection onBackup={() => setBackingUp(true)} />
+          <BackupSection kind="sp" onBackup={() => setBackingUp(true)} />
         </Stack>
-      {backingUp ? <BackupAccountModal account={wallet.name} onClose={() => setBackingUp(false)} /> : null}
+      {backingUp ? <BackupAccountModal kind="sp" account={wallet.name} onClose={() => setBackingUp(false)} /> : null}
     </ScreenWrap>
   );
 }
 
+/* What a backup holds and what opens it, each account kind its own (Qt:
+   IAccountBackend::backupDescription(): `summary` under the Settings' Backup, `details` in
+   Backup Account). `kind`: 'sp' | 'multikey'. */
+const BACKUP_TEXTS = {
+  sp: {
+    summary: "Saves this account to a file encrypted with BIP138: its descriptors, servers, address indexes and labels. It holds the account's scan key and opens only with it, from its key in Keys or its mnemonic. The spending keys are never in it: they stay in Keys.",
+    details: "The backup is a BIP139 wallet backup encrypted with BIP138. It holds the account's descriptors, servers, address indexes and labels, and the account's scan key, to which it is encrypted: only that key opens it, from its key in Keys or its mnemonic, and whoever opens it sees the account's payments. The spending keys are never in a backup.",
+  },
+  multikey: {
+    summary: "Saves this account to a file encrypted with BIP138: its descriptors, servers, address indexes and labels. It opens with any one of the policy's keys and holds no signing secret. The spending keys are never in it: they stay in Keys.",
+    details: "The backup is a BIP139 wallet backup encrypted with BIP138. It holds the account's descriptors, servers, address indexes and labels. It is encrypted to the policy's keys: any one of them opens it, from its signing device, its xpub or its mnemonic, and it holds no signing secret. The spending keys are never in a backup.",
+  },
+};
+
 /* Every account's Settings ends with Backup (core Settings.cpp, sp and Multikey alike): what
-   the backup holds, Backup Account right-aligned under it (the Register Descriptor row recipe). */
-function BackupSection({ onBackup }) {
+   the account kind's backup holds, Backup Account right-aligned under it (the Register
+   Descriptor row recipe). `kind`: 'sp' | 'multikey'. */
+function BackupSection({ kind = 'sp', onBackup }) {
   return (
     <Section label="Backup">
       <Stack gap="s">
-        <Text as="div" variant="body" color="secondary">Saves this account to a file encrypted with BIP138: its descriptors, servers, address indexes and labels. A Multikey backup opens with any one of its keys and holds no signing secret. A silent payment backup holds the account's scan key and opens only with it, from its key in Keys or its mnemonic. The spending keys are never in it: they stay in Keys.</Text>
+        <Text as="div" variant="body" color="secondary">{BACKUP_TEXTS[kind].summary}</Text>
         <Row justify="flex-end"><Btn id="backup_account" onClick={onBackup} /></Row>
       </Stack>
     </Section>
@@ -141,8 +156,9 @@ const BACKUP_EXCLUDED = ['[28645006]02c6047f9441ed7d6d3045406e95c07cd85c778e4b8c
 /* Backup Account (Qt: account::view::BackupAccount, ModalWidth::M). Views: save (what the
    BIP138(BIP139) backup is, Save Backup), busy (encrypting; then the system save dialog, not
    drawn), saved (where it is saved, and a warning naming the keys it is not encrypted to).
-   `initial`: { view, error, excluded } for the gallery. */
-function BackupAccountModal({ account = 'savings', initial = {}, onClose }) {
+   `kind`: 'sp' | 'multikey' picks the save view's text. `initial`: { view, error, excluded }
+   for the gallery. */
+function BackupAccountModal({ kind = 'sp', account = 'savings', initial = {}, onClose }) {
   const [view, setView] = React.useState(initial.view || 'save');
   const excluded = initial.excluded || [];
   const error = initial.error || null;
@@ -173,7 +189,7 @@ function BackupAccountModal({ account = 'savings', initial = {}, onClose }) {
   return (
     <Modal title="Backup Account" width={560} onClose={onClose}>
       <Stack gap="m">
-        <Text as="div" variant="body" color="secondary">The backup is a BIP139 wallet backup encrypted with BIP138. It holds the account's descriptors, servers, address indexes and labels. A Multikey backup is encrypted to the policy's keys: any one of them opens it, from its signing device, its xpub or its mnemonic, and it holds no signing secret. A silent payment backup holds the account's scan key and is encrypted to it: only that key opens it, from its key in Keys or its mnemonic, and whoever opens it sees the account's payments. The spending keys are never in a backup.</Text>
+        <Text as="div" variant="body" color="secondary">{BACKUP_TEXTS[kind].details}</Text>
         {error ? <Notice tone="error">{error}</Notice> : null}
         <ModalActions>
           <Btn id="save_backup" onClick={encrypt} />
@@ -311,7 +327,8 @@ function BackupList({ label, lines }) {
      backup's paths (trying, locked, failed, or giving no scan key), or the empty state;
      a backup naming a BIP352 scan path then lists the keys of Keys to ask for their scan
      key, each on a click (offered, asking, failed); Other options folds the
-     air-gap help, the paths, an xpub to paste or import, and the mnemonic behind its risk
+     air-gap help, the paths, an xpub to paste or import (left out when only a scan key
+     opens it), and the mnemonic behind its risk
      acknowledgement; Back only;
    - review (ModalWidth::M): what decrypted it, the account type and network, its Name (and
      its Network when the backup leaves it unsaid), what the backup holds, what restoring
@@ -364,7 +381,6 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
     const v = value.trim();
     if (!v) { setXpubNote(null); return; }
     if (!XPUB_LIKE.test(v)) { setXpubNote('Invalid xpub'); return; }
-    if (scanKeyOnly) { setXpubNote('This backup opens with a silent payment scan key, which no xpub gives: ask one of your keys for it, or enter its mnemonic'); return; }
     opened('Decrypted with the xpub given');
   };
   // Asking a key runs its own flow (its QR exchange, its password; not drawn), then its scan
@@ -414,7 +430,8 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
               <Stack gap={2}>
                 {info.paths.map(p => <Text key={p} as="div" variant="mono">{p}</Text>)}
               </Stack>
-              <FieldGroup>
+              {/* no xpub opens a backup keyed by a scan key: its xpub rows are left out */}
+              {scanKeyOnly ? null : <FieldGroup>
                 <Field label="Xpub:">
                   <ValidatedInput mono state={xpubNote ? 'invalid' : 'none'} value={xpub}
                     onChange={e => tryXpub(e.target.value)} wrapStyle={{ flex: 1, minWidth: 0 }} />
@@ -423,7 +440,7 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
                 {xpubNote ? <FieldNote tone="error">{xpubNote}</FieldNote> : null}
                 {/* the system open dialog is not drawn: Choose File reads the fixture's xpub */}
                 <Field label="Xpub file:"><Btn id="choose_file" onClick={() => tryXpub(DEMO_XPUB_T)} /></Field>
-              </FieldGroup>
+              </FieldGroup>}
               <Notice tone="warning">UNSAFE: this option is not secure. Entering a mnemonic on a computer may result in theft of the funds.</Notice>
               <Checkbox checked={ack} label="I understand the risk"
                 onChange={on => { setAck(on); if (!on) { setMnemonic(''); setMnemonicNote(null); } }} />
@@ -513,4 +530,4 @@ function ElectrumGaveUpModal({ server = 'minta.wizardsardine.com:60001', drops =
   );
 }
 
-Object.assign(window, { SettingsScreen, MusigSettingsScreen, ServerRow, ElectrumGaveUpModal, BackupSection, BackupAccountModal, BACKUP_EXCLUDED, RestoreAccountModal });
+Object.assign(window, { SettingsScreen, MusigSettingsScreen, ServerRow, ElectrumGaveUpModal, BackupSection, BackupAccountModal, BACKUP_TEXTS, BACKUP_EXCLUDED, RestoreAccountModal });

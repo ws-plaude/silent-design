@@ -25,7 +25,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Signing.jsx?v=25"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/AddKey.jsx?v=28"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=71"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=72"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=66"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
@@ -61,8 +61,8 @@
           RA('Decrypt: an SP backup, a key asked, a key failed, a key with its error', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], keys: { '73c5da0a': { status: 'asking' }, 'f23a9e01': { status: 'failed' }, '9a41e6b3': { status: 'failed', error: 'Wrong password. Try again.' } } }, 860),
           RA('Decrypt: a locked device with no state detail', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [{ id: 'hid-0006', brand: 'Blockstream', model: 'Jade', fp: null, state: 'locked' }] }, 760),
           RA('Decrypt: no device connected', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [] }, 860),
-          RA('Decrypt: other options, invalid xpub', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, xpub: 'tpubnotanxpub', xpubNote: 'Invalid xpub' }, 1100),
-          RA('Decrypt: other options, an SP backup that no xpub opens', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, xpub: DEMO_XPUB_T, xpubNote: 'This backup opens with a silent payment scan key, which no xpub gives: ask one of your keys for it, or enter its mnemonic' }, 1100),
+          RA('Decrypt: other options, invalid xpub', 'musig', { view: 'decrypt', file: FILE('multikey'), devices: [], options: true, xpub: 'tpubnotanxpub', xpubNote: 'Invalid xpub' }, 1100),
+          RA('Decrypt: other options, an SP backup: no xpub rows', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true }, 1100),
           RA('Decrypt: other options, an xpub that cannot decrypt it', 'musig', { view: 'decrypt', file: FILE('multikey'), devices: [], options: true, xpub: DEMO_XPUB_T, xpubNote: 'Xpub is valid but cannot decrypt this file' }, 900),
           RA('Decrypt: other options, the risk acknowledged, a mnemonic that cannot decrypt it', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, ack: true, mnemonic: 'abandon ability able about above absent absorb abstract absurd abuse access account', mnemonicNote: 'Mnemonic is valid but cannot decrypt the file' }, 1240),
           RA('Decrypt: other options, an invalid mnemonic', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], options: true, ack: true, mnemonic: 'abandon ability able about above absent absorb abstract absurd abuse access hello', mnemonicNote: 'Invalid mnemonic' }, 1240),

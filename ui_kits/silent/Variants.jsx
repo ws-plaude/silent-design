@@ -112,6 +112,7 @@ export const BUTTONS = {
   reveal_mnemonic: { role: 'default', label: 'Reveal Mnemonic', icon: 'eye', iconSize: 16, w: 'XL' },
   save: { role: 'default', label: 'Save', w: 'M' },
   scan_again: { role: 'default', label: 'Scan Again', w: 'M' },
+  rescan: { role: 'default', label: 'Rescan', w: 'M' },
   test: { role: 'default', label: 'Test', w: 'M' },
   test_ok: { role: 'default', label: '✓ Test', w: 'M' },
   testing: { role: 'default', label: 'Testing…', w: 'M' },

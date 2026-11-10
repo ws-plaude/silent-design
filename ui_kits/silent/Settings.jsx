@@ -63,8 +63,9 @@ const backendMissing = (id, installed = BLOCKCHAIN_BACKENDS) => !!id && !install
    blockchain. The picker lists Electrum (built-in), then each plugin offering itself, and a
    chosen module that is not installed by its raw id; it is disabled while a choice saves
    (a saved choice rebuilds Settings over the new services). The error line under it: the
-   missing backend, or why a choice was refused or not saved. `backend`: { chosen (a module
-   id, '' for Electrum), installed, error, saving } for the gallery. */
+   missing backend, or why a choice was refused or not saved. While a plugin supplies the
+   blockchain, Rescan from height follows (RescanFromHeight). `backend`: { chosen (a module
+   id, '' for Electrum), installed, error, saving, rescan } for the gallery. */
 function BlockchainBackendSection({ backend = {} }) {
   const installed = backend.installed || BLOCKCHAIN_BACKENDS;
   const [chosen, setChosen] = React.useState(backend.chosen || '');
@@ -86,8 +87,38 @@ function BlockchainBackendSection({ backend = {} }) {
         <Text as="div" variant="body" color="secondary">Where this account reads the blockchain: the built-in Electrum server, or a plugin watching its descriptors.</Text>
         <Row><ComboBox value={label} options={entries.map(e => e.name)} onChange={pick} minWidth={SETTINGS_PICKER_WIDTH} disabled={saving} /></Row>
         {error ? <Text as="div" variant="body" color="error">{error}</Text> : null}
+        {chosen && !backendMissing(chosen, installed) ? <RescanFromHeight initial={backend.rescan} /> : null}
       </Stack>
     </Section>
+  );
+}
+
+/* Rescan from height (musig SettingsExtras::initRescan): the account records no birthday,
+   so the height starts empty. Digits only, a check once a height is entered; Rescan is
+   disabled until then and while a request is pending. The status line, hidden until the
+   plugin answers: the scan started (secondary), or the plugin's message (error).
+   `initial`: { height, pending, done, refused } for the gallery. */
+function RescanFromHeight({ initial = {} }) {
+  const [height, setHeight] = React.useState(initial.height || '');
+  const [pending, setPending] = React.useState(!!initial.pending);
+  const [answer, setAnswer] = React.useState(initial.refused ? { tone: 'error', text: initial.refused }
+    : initial.done ? { tone: 'secondary', text: `The blockchain backend scans again from block ${initial.height}.` } : null);
+  const rescan = () => {
+    const from = height;
+    setPending(true); setAnswer(null);
+    setTimeout(() => { setPending(false); setAnswer({ tone: 'secondary', text: `The blockchain backend scans again from block ${from}.` }); }, 900);
+  };
+  return (
+    <Stack gap="s">
+      <Text as="div" variant="secondary" color="text">Rescan from height</Text>
+      <Row gap="s">
+        <ValidatedInput mono state={height ? 'valid' : 'none'} value={height} placeholder="Block height" inputMode="numeric"
+          onChange={e => setHeight(e.target.value.replace(/\D/g, ''))} wrapStyle={{ width: 'var(--w-s)', flex: 'none' }} />
+        <Btn id="rescan" disabled={!height || pending} onClick={rescan} />
+        <Spacer />
+      </Row>
+      {answer ? <Text as="div" variant="body" color={answer.tone}>{answer.text}</Text> : null}
+    </Stack>
   );
 }
 
@@ -576,4 +607,4 @@ function ElectrumGaveUpModal({ server = 'minta.wizardsardine.com:60001', drops =
   );
 }
 
-Object.assign(window, { SettingsScreen, MusigSettingsScreen, BlockchainBackendSection, BLOCKCHAIN_BACKENDS, backendMissing, ServerRow, ElectrumGaveUpModal, BackupSection, BackupAccountModal, BACKUP_TEXTS, BACKUP_EXCLUDED, RestoreAccountModal });
+Object.assign(window, { SettingsScreen, MusigSettingsScreen, BlockchainBackendSection, RescanFromHeight, BLOCKCHAIN_BACKENDS, backendMissing, ServerRow, ElectrumGaveUpModal, BackupSection, BackupAccountModal, BACKUP_TEXTS, BACKUP_EXCLUDED, RestoreAccountModal });

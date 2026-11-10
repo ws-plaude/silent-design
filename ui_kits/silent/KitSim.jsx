@@ -53,14 +53,21 @@ function simMusigProps(t) {
 
 /* A Multikey account's blockchain backend: Electrum, a plugin installed, or a plugin no
    longer installed (the account opens on Settings, its fund panels not built). */
+const SIM_BITCOIND = 'Bitcoin Core (bitcoind)';
 const SIM_MUSIG_BACKENDS = {
   electrum: { label: 'Electrum (built-in)', id: '' },
-  plugin: { label: 'Bitcoin Core plugin', id: 'bitcoind' },
+  plugin: { label: 'Bitcoin Core plugin', id: 'bitcoind',
+    state: { name: SIM_BITCOIND, connections: [{ name: 'bitcoind at 127.0.0.1:18443', connected: true }] } },
+  plugin_down: { label: 'Bitcoin Core plugin, disconnected', id: 'bitcoind',
+    state: { name: SIM_BITCOIND, connections: [{ name: 'bitcoind at 127.0.0.1:18443', connected: false, error: 'Connection refused' }] } },
+  plugin_quiet: { label: 'Bitcoin Core plugin, no connection reported', id: 'bitcoind',
+    state: { name: SIM_BITCOIND, connections: [] } },
   missing: { label: 'A plugin not installed', id: 'electrs' },
 };
 function simWallet(wallet, t) {
   if (wallet.kind !== 'musig') return wallet;
-  return { ...wallet, blockchainBackend: (SIM_MUSIG_BACKENDS[t.musigBackend] || SIM_MUSIG_BACKENDS.electrum).id };
+  const b = SIM_MUSIG_BACKENDS[t.musigBackend] || SIM_MUSIG_BACKENDS.electrum;
+  return { ...wallet, blockchainBackend: b.id, backendState: b.state };
 }
 
 const simHex = (i) => ((0x1a2b3c4d + i * 0x9e3779b1) >>> 0).toString(16).padStart(8, '0').slice(0, 8);
@@ -106,4 +113,4 @@ function KitSimPanel({ t, setTweak }) {
   );
 }
 
-Object.assign(window, { SIM_DEFAULTS, simKeysProps, simMusigProps, simWallet, KitSimPanel });
+Object.assign(window, { SIM_DEFAULTS, SIM_MUSIG_BACKENDS, simKeysProps, simMusigProps, simWallet, KitSimPanel });

@@ -18,24 +18,25 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Primitives.jsx?v=38"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Layout.jsx?v=5"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Widgets.jsx?v=67"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=50"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Variants.jsx?v=51"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Modal.jsx?v=12"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Address.jsx?v=10"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Data.jsx?v=20"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Sidebar.jsx?v=8"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Sidebar.jsx?v=9"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Keys.jsx?v=49"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Signing.jsx?v=25"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/AddKey.jsx?v=28"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/TxFlow.jsx?v=6"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=57"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=74"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=75"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=66"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/GlobalSettings.jsx?v=34"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
     const F = (el, h = 560) => ({ frame: true, height: h, el: <div style={{ position: 'relative', height: '100%' }}>{el}</div> });
     const noop = () => {};
+    const BITCOIND = 'Bitcoin Core (bitcoind)';
     const CS = (initial, h = 760) => ({ span: 'span2', ...F(<CreateSharedAccount existing={KNOWN_WALLETS} onCancel={noop} onCreate={noop} initial={initial} />, h) });
     const MS = (props, h = 760) => ({ span: 'span2', ...F(<MusigSignModal signers={musigSigners(['73c5da0a', 'b8688df1'])} onClose={noop} onBroadcast={noop} {...props} />, h) });
     function LauncherDemo() {
@@ -120,12 +121,21 @@
           { title: 'Settings: a choice saving, the picker disabled', tag: 'BlockchainBackendSection', span: 'full', frame: true, height: 420, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: '', saving: true }} /> },
           { title: 'Settings: the backend cannot change while the account signs, broadcasts or changes its server', tag: 'BlockchainBackendSection', span: 'full', frame: true, height: 440, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: '', error: 'The blockchain backend cannot change while the account signs, broadcasts or changes its server.' }} /> },
           { title: 'Settings: the choice could not be saved', tag: 'BlockchainBackendSection', span: 'full', frame: true, height: 440, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind', error: 'Could not save the blockchain backend' }} /> },
+          { title: 'Rescan from height: shown while a plugin supplies the blockchain, no height yet, Rescan disabled', tag: 'RescanFromHeight', span: 'full', frame: true, height: 480, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind' }} /> },
+          { title: 'Rescan from height: a height entered, its check, Rescan enabled', tag: 'RescanFromHeight', span: 'full', frame: true, height: 480, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind', rescan: { height: '150' } }} /> },
+          { title: 'Rescan from height: the request pending, Rescan disabled', tag: 'RescanFromHeight', span: 'full', frame: true, height: 480, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind', rescan: { height: '150', pending: true } }} /> },
+          { title: 'Rescan from height: answered, the scan started', tag: 'RescanFromHeight', span: 'full', frame: true, height: 500, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind', rescan: { height: '150', done: true } }} /> },
+          { title: 'Rescan from height: refused, the plugin\'s message', tag: 'RescanFromHeight', span: 'full', frame: true, height: 500, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind', rescan: { height: '150', refused: 'Bitcoin Core (bitcoind) refuses this request' } }} /> },
           { title: 'Missing backend: the account opens on Settings, which names the module not installed by its id; History, Coins, Send, Receive and PSBT are not built, their menu entries stay', tag: 'MusigSettingsScreen', span: 'full', frame: true, height: 700, el: <MissingBackendDemo /> },
           { title: 'Register Descriptor: on open, Alice\'s USB device being checked, the QR keys not registered, the hot key not needed', tag: 'RegisterDescriptorModal', span: 'span2', ...F(<RegisterDescriptorModal onClose={noop} initial={{ states: { '28645006': 'pending', '73c5da0a': 'checking', 'b8688df1': 'pending', '3f635a63': 'not_needed' } }} />, 560) },
           { title: 'Register Descriptor: Carol and Bob registering at once, Alice\'s device not connected', tag: 'RegisterDescriptorModal', span: 'span2', ...F(<RegisterDescriptorModal onClose={noop} initial={{ states: { '28645006': 'registering', '73c5da0a': 'disconnected', 'b8688df1': 'registering', '3f635a63': 'not_needed' } }} />, 560) },
           { title: 'Register Descriptor: Carol registered, Bob failed with why, a click tries again', tag: 'RegisterDescriptorModal', span: 'span2', ...F(<RegisterDescriptorModal onClose={noop} initial={{ states: { '28645006': 'registered', '73c5da0a': 'registered', 'b8688df1': 'failed', '3f635a63': 'not_needed' }, failed: { 'b8688df1': 'The device did not register this account.' } }} />, 560) },
           { title: 'Status bar: the Electrum half only, try the switch', tag: 'MusigStatusBar', span: 'full', frame: true, height: 60, el: <StatusBar wallet={WALLETS.multikey} /> },
           { title: 'Status bar: no Electrum server yet', tag: 'MusigStatusBar', span: 'full', frame: true, height: 60, el: <StatusBar wallet={{ ...WALLETS.multikey, electrum: '' }} /> },
+          { title: 'Status bar, plugin backend: its first connection connected, the switch disabled', tag: 'MusigStatusBar', span: 'full', frame: true, height: 60, el: <StatusBar wallet={{ ...WALLETS.multikey, blockchainBackend: 'bitcoind', backendState: { name: BITCOIND, connections: [{ name: 'bitcoind at 127.0.0.1:18443', connected: true }] } }} /> },
+          { title: 'Status bar, plugin backend: its first connection disconnected, its error as tooltip', tag: 'MusigStatusBar', span: 'full', frame: true, height: 60, el: <StatusBar wallet={{ ...WALLETS.multikey, blockchainBackend: 'bitcoind', backendState: { name: BITCOIND, connections: [{ name: 'bitcoind at 127.0.0.1:18443', connected: false, error: 'Connection refused' }] } }} /> },
+          { title: 'Status bar, plugin backend: the plugin reports no connection', tag: 'MusigStatusBar', span: 'full', frame: true, height: 60, el: <StatusBar wallet={{ ...WALLETS.multikey, blockchainBackend: 'bitcoind', backendState: { name: BITCOIND, connections: [] } }} /> },
+          { title: 'Status bar, plugin backend: not installed', tag: 'MusigStatusBar', span: 'full', frame: true, height: 60, el: <StatusBar wallet={{ ...WALLETS.multikey, blockchainBackend: 'bitcoind' }} /> },
         ]},
         { name: 'Saved PSBTs', items: [
           { title: 'PSBT: open a transaction to resume locked Send; edit labels, show confirmed, delete with confirmation only while unconfirmed', tag: 'SavedPsbts', span: 'full', frame: true, height: 1300, el: <SavedPsbtDemo /> },

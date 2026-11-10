@@ -413,13 +413,16 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
     return (
       <Modal title="Restore Account" width={600} onClose={onClose}>
         <Stack gap="m">
-          <Text as="div" variant="body" color="secondary">Plug in and unlock a signing device belonging to this account to decrypt the backup.</Text>
-          <Stack gap="s">
-            {sorted.length ? sorted.map(d => <RestoreDeviceRow key={d.id} device={d} scanKeyOnly={scanKeyOnly} />)
-              : <EmptyState icon="usb" title="No Device Connected" subtitle="Plug in your signing device and unlock it." />}
-          </Stack>
-          {keys.length ? <React.Fragment>
-            <Text as="div" variant="body" color="secondary">This backup opens with a silent payment scan key, which no connected device gives. Ask one of your keys for it:</Text>
+          {/* no device gives a scan key: a backup only one opens lists no device (Qt: scanKeyOnly) */}
+          {scanKeyOnly ? null : <React.Fragment>
+            <Text as="div" variant="body" color="secondary">Plug in and unlock a signing device belonging to this account to decrypt the backup.</Text>
+            <Stack gap="s">
+              {sorted.length ? sorted.map(d => <RestoreDeviceRow key={d.id} device={d} scanKeyOnly={scanKeyOnly} />)
+                : <EmptyState icon="usb" title="No Device Connected" subtitle="Plug in your signing device and unlock it." />}
+            </Stack>
+          </React.Fragment>}
+          {scanKeyOnly || keys.length ? <React.Fragment>
+            <Text as="div" variant="body" color="secondary">This backup opens only with the account's silent payment scan key, which no signing device gives: ask its key in Keys for it, or enter the key's mnemonic under Other options.</Text>
             <Stack gap="s">
               {keys.map(k => <RestoreKeyRow key={k.fp} k={k} {...(keyTries[k.fp] || {})} onAsk={() => askKey(k)} />)}
             </Stack>

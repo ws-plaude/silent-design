@@ -25,7 +25,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Signing.jsx?v=25"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/AddKey.jsx?v=28"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=72"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=73"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=66"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs">
@@ -57,7 +57,7 @@
           RA('File: the file is not read', 'sp', { error: 'The file is not read: Permission denied' }, 420),
           RA('Busy: reading the backup', 'sp', { busy: 'reading' }, 380),
           RA('Decrypt: a Multikey backup, devices trying, locked and failed', 'musig', { view: 'decrypt', file: FILE('multikey') }, 560),
-          RA('Decrypt: an SP backup, the devices give no scan key, its keys offered', 'sp', { view: 'decrypt', file: FILE('savings') }, 900),
+          RA('Decrypt: an SP backup, no device listed, its keys offered', 'sp', { view: 'decrypt', file: FILE('savings') }, 900),
           RA('Decrypt: an SP backup, a key asked, a key failed, a key with its error', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [], keys: { '73c5da0a': { status: 'asking' }, 'f23a9e01': { status: 'failed' }, '9a41e6b3': { status: 'failed', error: 'Wrong password. Try again.' } } }, 860),
           RA('Decrypt: a locked device with no state detail', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [{ id: 'hid-0006', brand: 'Blockstream', model: 'Jade', fp: null, state: 'locked' }] }, 760),
           RA('Decrypt: no device connected', 'sp', { view: 'decrypt', file: FILE('savings'), devices: [] }, 860),

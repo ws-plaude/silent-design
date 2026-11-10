@@ -65,8 +65,9 @@ const backendMissing = (id, installed = BLOCKCHAIN_BACKENDS) => !!id && !install
    (a saved choice rebuilds Settings over the new services). The error line under it: the
    missing backend, or why a choice was refused or not saved. While a plugin supplies the
    blockchain, Rescan from height follows (RescanFromHeight). `backend`: { chosen (a module
-   id, '' for Electrum), installed, error, saving, rescan } for the gallery. */
-function BlockchainBackendSection({ backend = {} }) {
+   id, '' for Electrum), installed, error, saving, rescan } for the gallery. `birthday`: the
+   account's birthday height, 0 or none when it has none. */
+function BlockchainBackendSection({ backend = {}, birthday }) {
   const installed = backend.installed || BLOCKCHAIN_BACKENDS;
   const [chosen, setChosen] = React.useState(backend.chosen || '');
   const [saving, setSaving] = React.useState(!!backend.saving);
@@ -87,19 +88,22 @@ function BlockchainBackendSection({ backend = {} }) {
         <Text as="div" variant="body" color="secondary">Where this account reads the blockchain: the built-in Electrum server, or a plugin watching its descriptors.</Text>
         <Row><ComboBox value={label} options={entries.map(e => e.name)} onChange={pick} minWidth={SETTINGS_PICKER_WIDTH} disabled={saving} /></Row>
         {error ? <Text as="div" variant="body" color="error">{error}</Text> : null}
-        {chosen && !backendMissing(chosen, installed) ? <RescanFromHeight initial={backend.rescan} /> : null}
+        {chosen && !backendMissing(chosen, installed) ? <RescanFromHeight birthday={birthday} initial={backend.rescan} /> : null}
       </Stack>
     </Section>
   );
 }
 
-/* Rescan from height (musig SettingsExtras::initRescan): the account records no birthday,
-   so the height starts empty. Digits only, a check once a height is entered; Rescan is
-   disabled until then and while a request is pending. The status line, hidden until the
-   plugin answers: the scan started (secondary), or the plugin's message (error).
-   `initial`: { height, pending, done, refused } for the gallery. */
-function RescanFromHeight({ initial = {} }) {
-  const [height, setHeight] = React.useState(initial.height || '');
+/* Rescan from height (musig SettingsExtras::initRescan): the height starts at the account's
+   `birthday` height, Rescan enabled (a Multikey account restored from a backup carrying a
+   BIP139 block_height keeps it as its birthday), and empty under its "Block height"
+   placeholder when it has none (a newly created account records only a time). Digits only,
+   a check once a height is entered; Rescan is disabled until then and while a request is
+   pending. The status line, hidden until the plugin answers: the scan started (secondary),
+   or the plugin's message (error). `initial`: { height, pending, done, refused } for the
+   gallery. */
+function RescanFromHeight({ birthday, initial = {} }) {
+  const [height, setHeight] = React.useState(initial.height || (birthday ? String(birthday) : ''));
   const [pending, setPending] = React.useState(!!initial.pending);
   const [answer, setAnswer] = React.useState(initial.refused ? { tone: 'error', text: initial.refused }
     : initial.done ? { tone: 'secondary', text: `The blockchain backend scans again from block ${initial.height}.` } : null);
@@ -126,7 +130,8 @@ function RescanFromHeight({ initial = {} }) {
    Electrum ServerRow, Blockchain backend (BlockchainBackendSection), Policy (its spend
    paths; Register Descriptor on the cosigners' devices under it), Descriptor (pretty, keys
    as aliases; copy for backup), then Backup (BackupSection). `backend`: the
-   BlockchainBackendSection fixture, else the wallet's `blockchainBackend`. */
+   BlockchainBackendSection fixture, else the wallet's `blockchainBackend`; the wallet's
+   `birthdayHeight` starts the rescan field. */
 function MusigSettingsScreen({ wallet, backend }) {
   const [registering, setRegistering] = React.useState(false);
   const [backingUp, setBackingUp] = React.useState(false);
@@ -136,7 +141,8 @@ function MusigSettingsScreen({ wallet, backend }) {
       <Stack gap="l">
         <ServerRow label="Electrum Address" initial={wallet.electrum} placeholder="host:port (e.g. 127.0.0.1:50001)"
           height={wallet.electrumHeight} connectId="connect_electrum" disconnectId="disconnect_electrum" transport lockConnectedElectrum />
-        <BlockchainBackendSection key={wallet.name} backend={backend || { chosen: wallet.blockchainBackend || '' }} />
+        <BlockchainBackendSection key={wallet.name} birthday={wallet.birthdayHeight}
+          backend={backend || { chosen: wallet.blockchainBackend || '' }} />
         <Section label="Policy">
           <Stack gap="s">
             <PolicyReview paths={wallet.paths || []} />

@@ -29,7 +29,7 @@
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/ScreensBasic.jsx?v=52"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/TxFlow.jsx?v=6"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Send.jsx?v=57"></script>
-  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=75"></script>
+  <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Settings.jsx?v=76"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/MenuTab.jsx?v=67"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/Musig.jsx?v=66"></script>
   <script type="text/babel" data-presets="react" data-plugins="transform-modules-commonjs" src="../ui_kits/silent/GlobalSettings.jsx?v=34"></script>
@@ -37,6 +37,8 @@
     const F = (el, h = 560) => ({ frame: true, height: h, el: <div style={{ position: 'relative', height: '100%' }}>{el}</div> });
     const noop = () => {};
     const BITCOIND = 'Bitcoin Core (bitcoind)';
+    /* restored from a backup carrying BIP139 block_height: its birthday height */
+    const RESTORED_MULTIKEY = { ...WALLETS.multikey, birthdayHeight: 1180 };
     const CS = (initial, h = 760) => ({ span: 'span2', ...F(<CreateSharedAccount existing={KNOWN_WALLETS} onCancel={noop} onCreate={noop} initial={initial} />, h) });
     const MS = (props, h = 760) => ({ span: 'span2', ...F(<MusigSignModal signers={musigSigners(['73c5da0a', 'b8688df1'])} onClose={noop} onBroadcast={noop} {...props} />, h) });
     function LauncherDemo() {
@@ -121,7 +123,8 @@
           { title: 'Settings: a choice saving, the picker disabled', tag: 'BlockchainBackendSection', span: 'full', frame: true, height: 420, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: '', saving: true }} /> },
           { title: 'Settings: the backend cannot change while the account signs, broadcasts or changes its server', tag: 'BlockchainBackendSection', span: 'full', frame: true, height: 440, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: '', error: 'The blockchain backend cannot change while the account signs, broadcasts or changes its server.' }} /> },
           { title: 'Settings: the choice could not be saved', tag: 'BlockchainBackendSection', span: 'full', frame: true, height: 440, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind', error: 'Could not save the blockchain backend' }} /> },
-          { title: 'Rescan from height: shown while a plugin supplies the blockchain, no height yet, Rescan disabled', tag: 'RescanFromHeight', span: 'full', frame: true, height: 480, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind' }} /> },
+          { title: 'Rescan from height, a created account: shown while a plugin supplies the blockchain, no birthday height, empty under its placeholder, Rescan disabled', tag: 'RescanFromHeight', span: 'full', frame: true, height: 480, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind' }} /> },
+          { title: 'Rescan from height, a restored account: prefilled with its birthday height', tag: 'RescanFromHeight', span: 'full', frame: true, height: 480, el: <SettingsScreen wallet={RESTORED_MULTIKEY} backend={{ chosen: 'bitcoind' }} /> },
           { title: 'Rescan from height: a height entered, its check, Rescan enabled', tag: 'RescanFromHeight', span: 'full', frame: true, height: 480, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind', rescan: { height: '150' } }} /> },
           { title: 'Rescan from height: the request pending, Rescan disabled', tag: 'RescanFromHeight', span: 'full', frame: true, height: 480, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind', rescan: { height: '150', pending: true } }} /> },
           { title: 'Rescan from height: answered, the scan started', tag: 'RescanFromHeight', span: 'full', frame: true, height: 500, el: <SettingsScreen wallet={WALLETS.multikey} backend={{ chosen: 'bitcoind', rescan: { height: '150', done: true } }} /> },

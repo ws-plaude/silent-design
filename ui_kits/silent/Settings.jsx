@@ -125,7 +125,7 @@ function BackupSection({ onBackup }) {
   return (
     <Section label="Backup">
       <Stack gap="s">
-        <Text as="div" variant="body" color="secondary">Saves this account to a file encrypted to its keys: its descriptors, servers, address indexes and labels. Any one of its keys opens it. The signing secrets are not in it: they stay in Keys.</Text>
+        <Text as="div" variant="body" color="secondary">Saves this account to a file encrypted with BIP138: its descriptors, servers, address indexes and labels. A Multikey backup opens with any one of its keys and holds no signing secret. A silent payment backup holds the account's scan key and opens only with it, from its key in Keys or its mnemonic. The spending keys are never in it: they stay in Keys.</Text>
         <Row justify="flex-end"><Btn id="backup_account" onClick={onBackup} /></Row>
       </Stack>
     </Section>
@@ -173,7 +173,7 @@ function BackupAccountModal({ account = 'savings', initial = {}, onClose }) {
   return (
     <Modal title="Backup Account" width={560} onClose={onClose}>
       <Stack gap="m">
-        <Text as="div" variant="body" color="secondary">The backup is a BIP139 wallet backup encrypted with BIP138 to the account's keys: any one of them opens it, from its signing device, its xpub or its mnemonic. It holds the account's descriptors, servers, address indexes and labels, no signing secret.</Text>
+        <Text as="div" variant="body" color="secondary">The backup is a BIP139 wallet backup encrypted with BIP138. It holds the account's descriptors, servers, address indexes and labels. A Multikey backup is encrypted to the policy's keys: any one of them opens it, from its signing device, its xpub or its mnemonic, and it holds no signing secret. A silent payment backup holds the account's scan key and is encrypted to it: only that key opens it, from its key in Keys or its mnemonic, and whoever opens it sees the account's payments. The spending keys are never in a backup.</Text>
         {error ? <Notice tone="error">{error}</Notice> : null}
         <ModalActions>
           <Btn id="save_backup" onClick={encrypt} />
@@ -201,7 +201,7 @@ const BACKUP_INFO = {
       'Labels: 4',
     ],
     requirements: [
-      'The signing keys 73c5da0a, in Keys: the backup holds no secret',
+      'The signing keys 73c5da0a, in Keys, to spend: the backup holds the scan key, not the spending key',
       'Its coins and history are found again by scanning from block 809500',
     ],
     warnings: [],
@@ -303,7 +303,7 @@ function BackupList({ label, lines }) {
 
 /* Restore Account (Qt: account::view::RestoreAccount), opened from the Account Type picker's
    Restore rows. Views, in order:
-   - file (ModalWidth::M): choose the backup file (a Silent backup, a BIP139 wallet backup or
+   - file (ModalWidth::M): choose the backup file (a BIP139 wallet backup or
      a descriptor, encrypted with BIP138 or not; the system open dialog is not drawn);
    - busy: reading, then restoring;
    - decrypt (ModalWidth::L, its body scrolls: Qt catalog::ScrollArea, fit content): an
@@ -410,7 +410,7 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
           </React.Fragment> : null}
           <FoldSection id="options" label="Other options" open={options} onToggle={() => setOptions(o => !o)}>
             <Stack gap="s">
-              <Text as="div" variant="body" color="secondary">Using an air-gapped device? Export the xpub from your device, then paste it or import its file. If you do not know its derivation path, try the following:</Text>
+              <Text as="div" variant="body" color="secondary">{scanKeyOnly ? "This backup opens only with the account's silent payment scan key, which no xpub gives: ask its key in Keys for it above, or enter the key's mnemonic below. Its scan path:" : "Using an air-gapped device? Export the xpub from your device, then paste it or import its file. If you do not know its derivation path, try the following:"}</Text>
               <Stack gap={2}>
                 {info.paths.map(p => <Text key={p} as="div" variant="mono">{p}</Text>)}
               </Stack>
@@ -481,7 +481,7 @@ function RestoreAccountModal({ kind = 'sp', initial = {}, onClose }) {
   return (
     <Modal title="Restore Account" width={560} onClose={onClose}>
       <Stack gap="m">
-        <Text as="div" variant="body" color="secondary">Choose the account's backup file: a Silent backup, a BIP139 wallet backup or a descriptor, encrypted with BIP138 or not.</Text>
+        <Text as="div" variant="body" color="secondary">Choose the account's backup file: a BIP139 wallet backup or a descriptor, encrypted with BIP138 or not.</Text>
         <FieldGroup>
           {/* the system open dialog (Backups (*.bip138 *.json *.txt), All files (*)) is not
               drawn: Choose File picks the fixture's file */}
